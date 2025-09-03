@@ -161,14 +161,14 @@ async function placeOrder(payload) {
             } else {
                 if(count >= 3)
                 {
-                    playBase64();
+                    window.playBase64();
                 }
                 window.MY_logToPanel("❌ 下单失败: " + json.message + JSON.stringify(payload));
             }
         } catch (err) {
             if(count >= 3)
             {
-                playBase64();
+                window.playBase64();
             }
             window.MY_logToPanel("⚠️ placeOrder请求异常: " + err.message);
         }
@@ -209,7 +209,7 @@ async function CancelOrder() {
     }
     catch (err) {
             if (err.name === 'AbortError') {
-                playBase64();
+                window.playBase64();
                 window.MY_logToPanel("⚠️ 请求超时，用户主动中止，未接收服务器响应");
                 await new Promise(r => setTimeout(r, 2000));
             }
@@ -253,14 +253,14 @@ async function SellOrderCreate(count)
 }
 
 async function StopTradingCycle() {
-    playBase64();
+    window.playBase64();
     isCircle = false;
     window.MY_logToPanel(`已结束交易`);
 }
 
 async function ClearTradeData() {
     localStorage.setItem('saleValue'+ MYcoinName, 0);
-    playBase64();
+    window.playBase64();
     window.MY_logToPanel(`已清理历史交易数据`);
 }
 
@@ -300,14 +300,14 @@ async function GetOrderHistory(orderid) {
             } else {
                 if(count >= 3)
                 {
-                    playBase64();
+                    window.playBase64();
                 }
                 window.MY_logToPanel("❌ 查询订单失败: " + json.message );
             }
         } catch (err) {
             if(count >= 3)
             {
-                playBase64();
+                window.playBase64();
             }
             window.MY_logToPanel("⚠️ 请求查询订单异常: " + err.message);
         }
@@ -398,7 +398,7 @@ async function startTradingCycle(times = 10) {
     totalSale = parseFloat(localStorage.getItem('saleValue'+ MYcoinName) || '0');
     if(totalSale > window.MY_MaxTradeNumber)
     {
-        playBase64();
+        window.playBase64();
         alert(`🎉 已完成交易 总交易额 ${totalSale}`);
         return;
     }
@@ -446,7 +446,7 @@ async function startTradingCycle(times = 10) {
         nowTradeNumberPanel.textContent = "当前交易金额:" + totalSale;
         if(totalSale > window.MY_MaxTradeNumber)
         {
-            playBase64();
+            window.playBase64();
             window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
             await new Promise(r => setTimeout(r, 2000));
             alert(`🎉 已完成交易 总交易额 ${totalSale}`);
@@ -454,7 +454,7 @@ async function startTradingCycle(times = 10) {
         }
     }
     isCircle = false;
-    playBase64();
+    window.playBase64();
     window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
     await new Promise(r => setTimeout(r, 2000));
     alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
