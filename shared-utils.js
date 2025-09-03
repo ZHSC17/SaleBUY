@@ -385,6 +385,10 @@ async function startTradingCycle(times = 10) {
     setTimeout(() => {
         clearLock = false;
     }, 1000);
+    
+    localStorage.setItem('totalTradeAmount'+ MYcoinName, totalInput.value);
+    window.MY_MaxTradeNumber = parseInt(localStorage.setItem('totalTradeAmount'+ MYcoinName) || 500);
+    
     sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
     if (!window.headerReady) {
         alert("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
