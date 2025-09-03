@@ -254,7 +254,7 @@ async function StopTradingCycle() {
 }
 
 async function ClearTradeData() {
-    localStorage.setItem('saleValue', 0);
+    localStorage.setItem('saleValue'+ MYcoinName, 0);
     playBase64();
     window.MY_logToPanel(`已清理历史交易数据`);
 }
@@ -342,13 +342,15 @@ async function startTradingCycle(times = 10) {
 function CreateUI(coinName) {
     MYcoinName = coinName
 
-    nowTradeNumberPanel = document.getElementById('nowTradeNumber');
-    nowTradeNumberPanel.textContent = "当前交易金额:" + localStorage.getItem('saleValue' + MYcoinName) || 0;
+    nowTradeNumberPanel = document.createElement('nowTradeNumber');
+    nowTradeNumberPanel.textContent = "当前交易金额:" + (localStorage.getItem('saleValue' + MYcoinName) || 0);
     nowTradeNumberPanel.style.position = 'fixed';
     nowTradeNumberPanel.style.bottom = '210px';
     nowTradeNumberPanel.style.right = '20px';
     nowTradeNumberPanel.style.zIndex = 9999;
     nowTradeNumberPanel.style.color = 'white';
+    nowTradeNumberPanel.style.backgroundColor = "green";
+    document.body.appendChild(nowTradeNumberPanel);
 
     const totalLabel = document.createElement('label');
     totalLabel.textContent = "总交易金额:";
@@ -357,17 +359,20 @@ function CreateUI(coinName) {
     totalLabel.style.right = '20px';
     totalLabel.style.zIndex = 9999;
     totalLabel.style.color = 'white';
+    totalLabel.style.backgroundColor = "green";
 
     const totalInput = document.createElement('input');
     totalInput.type = 'number';
     totalInput.value = localStorage.getItem('totalTradeAmount' + coinName) || 65536; // 默认值
     totalInput.style.width = '100px';
     totalInput.style.marginLeft = '5px';
+    totalInput.style.backgroundColor = "white";
     totalInput.onchange = () => {
         localStorage.setItem('totalTradeAmount'+ coinName, totalInput.value);
         window.MY_MaxTradeNumber = totalInput.value
     };
     totalLabel.appendChild(totalInput);
+    document.body.appendChild(totalLabel);
 
     // ====== 输入框：单次买入数量 ======
     const qtyLabel = document.createElement('label');
@@ -377,17 +382,20 @@ function CreateUI(coinName) {
     qtyLabel.style.right = '20px';
     qtyLabel.style.zIndex = 9999;
     qtyLabel.style.color = 'white';
+    qtyLabel.style.backgroundColor = "green";
 
     const qtyInput = document.createElement('input');
     qtyInput.type = 'number';
     qtyInput.value = localStorage.getItem('singleBuyQty'+ coinName) || 500; // 默认值
     qtyInput.style.width = '100px';
     qtyInput.style.marginLeft = '5px';
+    qtyInput.style.backgroundColor = "white";
     qtyInput.onchange = () => {
         localStorage.setItem('singleBuyQty'+ coinName, qtyInput.value);
         window.MY_PerTradeNumber = totalInput.value
     };
     qtyLabel.appendChild(qtyInput);
+    document.body.appendChild(qtyLabel);
 
 
       // UI按钮
@@ -404,6 +412,7 @@ function CreateUI(coinName) {
     btn.style.fontWeight = 'bold';
     btn.style.borderRadius = '8px';
     btn.onclick = () => startTradingCycle();
+    
     const cancelbtn = document.createElement('button');
     cancelbtn.textContent = '结束交易';
     cancelbtn.style.position = 'fixed';
