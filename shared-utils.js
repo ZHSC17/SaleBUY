@@ -10,6 +10,10 @@ const quoteAsset = "USDT";
 const timeoutMs = 5000;
 const pollInterval = 500;
 
+
+var MYcoinName;
+var nowTradeNumberPanel;
+
 async function getBestPriceByWeightedVolume(direction = 'BUY', tradeDecimal = 2) {
     const rows = Array.from(
         document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
@@ -263,14 +267,14 @@ async function startTradingCycle(times = 10) {
     setTimeout(() => {
         clearLock = false;
     }, 1000);
-    sellquantity = window.MY_roundTo2AndTrimZeros(quantity * 0.9999 , 2);
+    sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
     if (!headerReady) {
         alert("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         window.MY_logToPanel("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         return;
     }
-    totalSale = parseFloat(localStorage.getItem('saleValue') || '0');
-    if(totalSale > tradeNumber)
+    totalSale = parseFloat(localStorage.getItem('saleValue'+ MYcoinName) || '0');
+    if(totalSale > window.MY_MaxTradeNumber)
     {
         playBase64();
         alert(`🎉 已完成交易 总交易额 ${totalSale}`);
@@ -278,11 +282,11 @@ async function startTradingCycle(times = 10) {
     }
     isCircle = true;
     let i = 1
-    for (; i <= times; i++) {
+    for (; i <= 100000; i++) {
         window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
-        let buyPrice = await window.MY_BuyOrderCreate(quantity);
+        let buyPrice = await window.MY_BuyOrderCreate(window.MY_PerTradeNumber);
         let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
-        let myquantity = quantity
+        let myquantity = window.MY_PerTradeNumber
         while(!result.state)
         {
             await new Promise(r => setTimeout(r, pollInterval));
@@ -292,7 +296,7 @@ async function startTradingCycle(times = 10) {
             result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
         }
 
-        totalSale += buyPrice * quantity;
+        totalSale += buyPrice * window.MY_PerTradeNumber;
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
@@ -316,8 +320,9 @@ async function startTradingCycle(times = 10) {
             break;
         }
         window.MY_logToPanel(`✅ 第 ${i} 轮交易完成 现在总交易额${totalSale}`);
-        localStorage.setItem('saleValue', totalSale);
-        if(totalSale > tradeNumber)
+        localStorage.setItem('saleValue'+ MYcoinName , totalSale);
+        nowTradeNumberPanel.textContent = "当前交易金额:" + totalSale;
+        if(totalSale > window.MY_MaxTradeNumber)
         {
             playBase64();
             window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
@@ -334,9 +339,57 @@ async function startTradingCycle(times = 10) {
 }
    
 
-function CreateUI() {
+function CreateUI(coinName) {
+    MYcoinName = coinName
 
-    logToPanel("UI创建完成")
+    nowTradeNumberPanel = document.getElementById('nowTradeNumber');
+    nowTradeNumberPanel.textContent = "当前交易金额:" + localStorage.getItem('saleValue' + MYcoinName) || 0;
+    nowTradeNumberPanel.style.position = 'fixed';
+    nowTradeNumberPanel.style.bottom = '210px';
+    nowTradeNumberPanel.style.right = '20px';
+    nowTradeNumberPanel.style.zIndex = 9999;
+    nowTradeNumberPanel.style.color = 'white';
+
+    const totalLabel = document.createElement('label');
+    totalLabel.textContent = "总交易金额:";
+    totalLabel.style.position = 'fixed';
+    totalLabel.style.bottom = '180px';
+    totalLabel.style.right = '20px';
+    totalLabel.style.zIndex = 9999;
+    totalLabel.style.color = 'white';
+
+    const totalInput = document.createElement('input');
+    totalInput.type = 'number';
+    totalInput.value = localStorage.getItem('totalTradeAmount' + coinName) || 65536; // 默认值
+    totalInput.style.width = '100px';
+    totalInput.style.marginLeft = '5px';
+    totalInput.onchange = () => {
+        localStorage.setItem('totalTradeAmount'+ coinName, totalInput.value);
+        window.MY_MaxTradeNumber = totalInput.value
+    };
+    totalLabel.appendChild(totalInput);
+
+    // ====== 输入框：单次买入数量 ======
+    const qtyLabel = document.createElement('label');
+    qtyLabel.textContent = "单次买入数量:";
+    qtyLabel.style.position = 'fixed';
+    qtyLabel.style.bottom = '150px';
+    qtyLabel.style.right = '20px';
+    qtyLabel.style.zIndex = 9999;
+    qtyLabel.style.color = 'white';
+
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.value = localStorage.getItem('singleBuyQty'+ coinName) || 500; // 默认值
+    qtyInput.style.width = '100px';
+    qtyInput.style.marginLeft = '5px';
+    qtyInput.onchange = () => {
+        localStorage.setItem('singleBuyQty'+ coinName, qtyInput.value);
+        window.MY_PerTradeNumber = totalInput.value
+    };
+    qtyLabel.appendChild(qtyInput);
+
+
       // UI按钮
     const btn = document.createElement('button');
     btn.textContent = '🚀 开始' + coinName + '自动交易';
@@ -350,7 +403,7 @@ function CreateUI() {
     btn.style.color = 'Green';
     btn.style.fontWeight = 'bold';
     btn.style.borderRadius = '8px';
-    btn.onclick = () => startTradingCycle(loopTimes);
+    btn.onclick = () => startTradingCycle();
     const cancelbtn = document.createElement('button');
     cancelbtn.textContent = '结束交易';
     cancelbtn.style.position = 'fixed';
@@ -383,6 +436,8 @@ function CreateUI() {
     document.body.appendChild(btn);
     document.body.appendChild(cancelbtn);
     document.body.appendChild(clearbtn);
+    
+    logToPanel("UI创建完成")
 }
 
 
