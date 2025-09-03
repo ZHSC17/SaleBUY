@@ -386,7 +386,6 @@ async function startTradingCycle(times = 10) {
         clearLock = false;
     }, 1000);
     
-    localStorage.setItem('totalTradeAmount'+ MYcoinName, totalInput.value);
     window.MY_MaxTradeNumber = parseInt(localStorage.setItem('totalTradeAmount'+ MYcoinName) || 500);
     
     sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
