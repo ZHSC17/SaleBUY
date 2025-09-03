@@ -395,3 +395,5 @@ window.MY_CancelOrder = CancelOrder;
 window.MY_BuyOrderCreate = BuyOrderCreate;
 window.MY_SellOrderCreate = SellOrderCreate;
 window.MY_CreateUI = CreateUI;
+
+console.log("🚀 加载成功");
