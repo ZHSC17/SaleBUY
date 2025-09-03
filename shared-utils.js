@@ -336,7 +336,7 @@ async function startTradingCycle(times = 10) {
 
 function CreateUI() {
 
-    logPanel("UI创建完成")
+    logToPanel("UI创建完成")
       // UI按钮
     const btn = document.createElement('button');
     btn.textContent = '🚀 开始' + coinName + '自动交易';
