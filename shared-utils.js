@@ -513,7 +513,7 @@ function CreateUI() {
     qtyInput.style.backgroundColor = "white";
     qtyInput.onchange = () => {
         localStorage.setItem('singleBuyQty'+ MYcoinName, qtyInput.value);
-        window.MY_PerTradeNumber = totalInput.value
+        window.MY_PerTradeNumber = qtyInput.value
     };
     qtyLabel.appendChild(qtyInput);
     document.body.appendChild(qtyLabel);
