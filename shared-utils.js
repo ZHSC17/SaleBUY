@@ -19,11 +19,11 @@ let clearLock = false;
 var MYcoinName;
 var nowTradeNumberPanel;
 
-async function getBestPriceByWeightedVolume(direction = 'BUY', tradeDecimal = 2) {
-    const rows = Array.from(
-        document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
-    );
 
+async function getBestPriceByWeightedVolume(direction = 'BUY') {
+    const rows = Array.from( document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
+    );
+    // 解析价格和成交量
     const data = rows.map(div => {
         const priceText = div.children[1]?.textContent || '';
         const volumeText = div.children[2]?.textContent || '';
@@ -34,13 +34,16 @@ async function getBestPriceByWeightedVolume(direction = 'BUY', tradeDecimal = 2)
 
     if (data.length === 0) return null;
 
+    // 计算成交量加权平均价 VWAP
     const totalVolume = data.reduce((sum, d) => sum + d.volume, 0);
     const vwap = data.reduce((sum, d) => sum + d.price * d.volume, 0) / totalVolume;
 
     if (direction === 'BUY') {
-        return (vwap * 0.99999).toFixed(tradeDecimal);
+        // 买入：参考 VWAP 并稍微往下压，避免吃到高价
+        return (vwap * 0.9999).toFixed(window.tradeDecimal);
     } else {
-        return (vwap * 1.00005).toFixed(tradeDecimal);
+        // 卖出：参考 VWAP 并稍微往上抬
+        return (vwap * 1.00005).toFixed(window.tradeDecimal);
     }
 }
 
