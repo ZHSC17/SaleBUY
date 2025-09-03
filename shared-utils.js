@@ -258,6 +258,119 @@ async function ClearTradeData() {
     playBase64();
     window.MY_logToPanel(`已清理历史交易数据`);
 }
+
+  // 轮询监听成交状态
+async function GetOrderHistory(orderid) {
+    let count = 0;
+    while(true && isCircle)
+    {
+        try {
+            const endTime = Date.now();
+            const startTime = endTime - 60 * 60 * 1000; // 前一小时
+            const url = `https://www.binance.com/bapi/defi/v1/private/alpha-trade/order/get-order-history-web?page=1&rows=10&orderStatus=FILLED,PARTIALLY_FILLED,EXPIRED,CANCELED,REJECTED&startTime=${startTime}&endTime=${endTime}`;
+
+            // 给 fetch 加超时
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 5 秒超时
+
+            const res = await fetch(
+                url,
+                {
+                    method: 'GET',
+                    headers: capturedHeaders,
+                    credentials: 'include',
+                    signal: controller.signal
+                }
+            );
+            clearTimeout(timeoutId);
+
+            const json = await res.json();
+            if (json.success && Array.isArray(json.data)) {
+                const targetOrder = json.data.find(order => order.orderId === orderid || order.orderId === String(orderid));
+                if (targetOrder) {
+                    return targetOrder;
+                } else {
+                    return null;
+                }
+            } else {
+                if(count >= 3)
+                {
+                    playBase64();
+                }
+                window.MY_logToPanel("❌ 查询订单失败: " + json.message );
+            }
+        } catch (err) {
+            if(count >= 3)
+            {
+                playBase64();
+            }
+            window.MY_logToPanel("⚠️ 请求查询订单异常: " + err.message);
+        }
+        count++;
+        await new Promise(r => setTimeout(r, pollInterval));
+
+    }
+
+}
+
+async function waitUntilFilled(keyword,index,price) {
+    const start = Date.now();
+    while (true && isCircle) {
+        try{
+            window.MY_logToPanel(`第 ${index} 轮交易当前状态消息 价格${price} 等待成交`, );
+            let orderState = await GetOrderHistory(orderid);
+            if(orderState != null && orderState.status == "FILLED")
+            {
+                if(orderState.origQty == orderState.executedQty)
+                {
+                    window.MY_logToPanel(`第 ${index} 轮交易🎯 检测到成交: ` + keyword);
+                    let result = {
+                        state : true
+                    }
+                    return result;
+                }
+            }
+            await new Promise(r => setTimeout(r, pollInterval));
+            if(Date.now() - start > timeoutMs)
+            {
+                const cancelResult = await window.MY_CancelOrder();
+                if(isCircle)
+                {
+                    if(cancelResult)
+                    {
+                        while(true)
+                        {
+                            let orderState = await GetOrderHistory(orderid);
+                            if(orderState != null && orderState.status == "CANCELED")
+                            {
+                                let result = {
+                                    state : false,
+                                    executedQty :orderState.executedQty
+                                }
+                                return result
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    let result = {
+                        state : true
+                    }
+                    return result;
+                }
+            }
+        }
+        catch (err) {
+            window.MY_logToPanel("⚠️ 请求异常: " + err.message);
+        }
+    }
+    let result = {
+        state : true
+    }
+    return result;
+}
+
     // 循环交易主逻辑
 async function startTradingCycle(times = 10) {
     if(tradeDecimal == -1) return;
