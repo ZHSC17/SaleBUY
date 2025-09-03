@@ -10,6 +10,11 @@ const quoteAsset = "USDT";
 const timeoutMs = 5000;
 const pollInterval = 500;
 
+let totalSale = 0;
+let isCircle = false;
+let orderid = 0;
+let sellquantity = 1000000;
+let clearLock = false;
 
 var MYcoinName;
 var nowTradeNumberPanel;
@@ -70,7 +75,7 @@ async function getBestPriceByWeightedVolume(direction = 'BUY', tradeDecimal = 2)
     
 function roundTo6AndTrimZeros(num) {
     // 四舍五入到 6 位小数
-    const rounded = Number(parseFloat(num).toFixed(tradeDecimal));
+    const rounded = Number(parseFloat(num).toFixed(window.tradeDecimal));
     return rounded;
 }
 
@@ -139,7 +144,7 @@ async function placeOrder(payload) {
                 'https://www.binance.com/bapi/asset/v1/private/alpha-trade/order/place',
                 {
                     method: 'POST',
-                    headers: capturedHeaders,
+                    headers: window.capturedHeaders,
                     credentials: 'include',
                     body: JSON.stringify(payload),
                     signal: controller.signal
@@ -178,14 +183,14 @@ async function CancelOrder() {
     try {
         const payLoad = {
             orderid,
-            symbol
+            symbol:window.symbol
         };
         // 给 fetch 加超时
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 5 秒超时
         const res = await fetch('https://www.binance.com/bapi/defi/v1/private/alpha-trade/order/cancel', {
             method: 'POST',
-            headers:capturedHeaders,
+            headers:window.capturedHeaders,
             credentials: 'include',
             body: JSON.stringify(payLoad),
             signal: controller.signal
@@ -218,9 +223,9 @@ async function CancelOrder() {
 async function BuyOrderCreate(count)
 {
         let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
-        let buyAmount = window.MY_roundTo2AndTrimZeros((buyPrice * count).toFixed(tradeDecimal + 5) , tradeDecimal);
+        let buyAmount = window.MY_roundTo2AndTrimZeros((buyPrice * count).toFixed(window.tradeDecimal + 5) , window.tradeDecimal);
         await window.MY_placeOrder({
-            baseAsset,
+            baseAsset: window.baseAsset,
             quoteAsset,
             side: "BUY",
             price: buyPrice,
@@ -235,7 +240,7 @@ async function SellOrderCreate(count)
 {
     const sellPrice = await window.MY_getBestPriceByWeightedVolume("SELL");
     await window.MY_placeOrder({
-        baseAsset,
+        baseAsset: window.baseAsset,
         quoteAsset,
         side: "SELL",
         price: sellPrice,
@@ -277,7 +282,7 @@ async function GetOrderHistory(orderid) {
                 url,
                 {
                     method: 'GET',
-                    headers: capturedHeaders,
+                    headers: window.capturedHeaders,
                     credentials: 'include',
                     signal: controller.signal
                 }
@@ -373,7 +378,7 @@ async function waitUntilFilled(keyword,index,price) {
 
     // 循环交易主逻辑
 async function startTradingCycle(times = 10) {
-    if(tradeDecimal == -1) return;
+    if(window.tradeDecimal == -1) return;
     if (clearLock) return; // 已经处理过了，忽略后续点击
     clearLock = true;
     window.MY_logToPanel(`开始交易`);
@@ -381,7 +386,7 @@ async function startTradingCycle(times = 10) {
         clearLock = false;
     }, 1000);
     sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
-    if (!headerReady) {
+    if (!window.headerReady) {
         alert("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         window.MY_logToPanel("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         return;
@@ -452,8 +457,8 @@ async function startTradingCycle(times = 10) {
 }
    
 
-function CreateUI(coinName) {
-    MYcoinName = coinName
+function CreateUI() {
+    MYcoinName = window.coinName
 
     nowTradeNumberPanel = document.createElement('nowTradeNumber');
     nowTradeNumberPanel.textContent = "当前交易金额:" + (localStorage.getItem('saleValue' + MYcoinName) || 0);
@@ -476,12 +481,12 @@ function CreateUI(coinName) {
 
     const totalInput = document.createElement('input');
     totalInput.type = 'number';
-    totalInput.value = localStorage.getItem('totalTradeAmount' + coinName) || 65536; // 默认值
+    totalInput.value = localStorage.getItem('totalTradeAmount' + MYcoinName) || 65536; // 默认值
     totalInput.style.width = '100px';
     totalInput.style.marginLeft = '5px';
     totalInput.style.backgroundColor = "white";
     totalInput.onchange = () => {
-        localStorage.setItem('totalTradeAmount'+ coinName, totalInput.value);
+        localStorage.setItem('totalTradeAmount'+ MYcoinName, totalInput.value);
         window.MY_MaxTradeNumber = totalInput.value
     };
     totalLabel.appendChild(totalInput);
@@ -499,12 +504,12 @@ function CreateUI(coinName) {
 
     const qtyInput = document.createElement('input');
     qtyInput.type = 'number';
-    qtyInput.value = localStorage.getItem('singleBuyQty'+ coinName) || 500; // 默认值
+    qtyInput.value = localStorage.getItem('singleBuyQty'+ MYcoinName) || 500; // 默认值
     qtyInput.style.width = '100px';
     qtyInput.style.marginLeft = '5px';
     qtyInput.style.backgroundColor = "white";
     qtyInput.onchange = () => {
-        localStorage.setItem('singleBuyQty'+ coinName, qtyInput.value);
+        localStorage.setItem('singleBuyQty'+ MYcoinName, qtyInput.value);
         window.MY_PerTradeNumber = totalInput.value
     };
     qtyLabel.appendChild(qtyInput);
@@ -513,7 +518,7 @@ function CreateUI(coinName) {
 
       // UI按钮
     const btn = document.createElement('button');
-    btn.textContent = '🚀 开始' + coinName + '自动交易';
+    btn.textContent = '🚀 开始' + MYcoinName + '自动交易';
     btn.style.position = 'fixed';
     btn.style.bottom = '60px';
     btn.style.right = '20px';
