@@ -1,5 +1,15 @@
 // shared-utils.js
 
+/**
+ * 获取 VWAP 中间价格
+ * @param {'BUY' | 'SELL'} direction 
+ * @param {number} tradeDecimal 小数精度
+ * @returns {Promise<string|null>}
+ */
+const quoteAsset = "USDT";
+const timeoutMs = 5000;
+const pollInterval = 500;
+
 async function getBestPriceByWeightedVolume(direction = 'BUY', tradeDecimal = 2) {
     const rows = Array.from(
         document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
@@ -67,7 +77,6 @@ function roundTo2AndTrimZeros(num , count) {
     return Number(str.slice(0, dotIndex + count + 1)); // 截取小数点后两位
 }
 
-
 var logPanel;
 function createOutputPanel() {
     logPanel = document.createElement('div');
@@ -85,7 +94,7 @@ function createOutputPanel() {
         fontSize: '12px',
         overflowY: 'auto',
         padding: '10px',
-        zIndex: 99999,
+        zIndex: 99998,
         borderRadius: '8px',
         boxShadow: '0 0 10px rgba(0,0,0,0.5)',
         whiteSpace: 'pre-wrap'
@@ -234,6 +243,146 @@ async function SellOrderCreate(count)
     return sellPrice;
 }
 
+async function StopTradingCycle() {
+    playBase64();
+    isCircle = false;
+    window.MY_logToPanel(`已结束交易`);
+}
+
+async function ClearTradeData() {
+    localStorage.setItem('saleValue', 0);
+    playBase64();
+    window.MY_logToPanel(`已清理历史交易数据`);
+}
+    // 循环交易主逻辑
+async function startTradingCycle(times = 10) {
+    if(tradeDecimal == -1) return;
+    if (clearLock) return; // 已经处理过了，忽略后续点击
+    clearLock = true;
+    window.MY_logToPanel(`开始交易`);
+    setTimeout(() => {
+        clearLock = false;
+    }, 1000);
+    sellquantity = window.MY_roundTo2AndTrimZeros(quantity * 0.9999 , 2);
+    if (!headerReady) {
+        alert("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
+        window.MY_logToPanel("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
+        return;
+    }
+    totalSale = parseFloat(localStorage.getItem('saleValue') || '0');
+    if(totalSale > tradeNumber)
+    {
+        playBase64();
+        alert(`🎉 已完成交易 总交易额 ${totalSale}`);
+        return;
+    }
+    isCircle = true;
+    let i = 1
+    for (; i <= times; i++) {
+        window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
+        let buyPrice = await window.MY_BuyOrderCreate(quantity);
+        let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+        let myquantity = quantity
+        while(!result.state)
+        {
+            await new Promise(r => setTimeout(r, pollInterval));
+            const executedQty = parseFloat(result.executedQty);
+            myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
+            buyPrice = await window.MY_BuyOrderCreate(myquantity);
+            result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+        }
+
+        totalSale += buyPrice * quantity;
+
+        if(!isCircle){
+            window.MY_logToPanel(`停止自动交易`);
+            break;
+        }
+
+        let sellPrice = await window.MY_SellOrderCreate(sellquantity);
+        result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+        myquantity = sellquantity
+        while(!result.state)
+        {
+            await new Promise(r => setTimeout(r, pollInterval));
+            const executedQty = parseFloat(result.executedQty);
+            myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
+            sellPrice = await window.MY_SellOrderCreate(myquantity);
+            result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+        }
+
+        if(!isCircle){
+            window.MY_logToPanel(`停止自动交易`);
+            break;
+        }
+        window.MY_logToPanel(`✅ 第 ${i} 轮交易完成 现在总交易额${totalSale}`);
+        localStorage.setItem('saleValue', totalSale);
+        if(totalSale > tradeNumber)
+        {
+            playBase64();
+            window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
+            await new Promise(r => setTimeout(r, 2000));
+            alert(`🎉 已完成交易 总交易额 ${totalSale}`);
+            return;
+        }
+    }
+    isCircle = false;
+    playBase64();
+    window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
+    await new Promise(r => setTimeout(r, 2000));
+    alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
+}
+   
+
+function CreateUI() {
+      // UI按钮
+    const btn = document.createElement('button');
+    btn.textContent = '🚀 开始' + coinName + '自动交易';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '60px';
+    btn.style.right = '20px';
+    btn.style.zIndex = 9999;
+    btn.style.padding = '10px';
+    btn.style.backgroundColor = '#f0b90b';
+    btn.style.border = 'none';
+    btn.style.color = 'Green';
+    btn.style.fontWeight = 'bold';
+    btn.style.borderRadius = '8px';
+    btn.onclick = () => startTradingCycle(loopTimes);
+    const cancelbtn = document.createElement('button');
+    cancelbtn.textContent = '结束交易';
+    cancelbtn.style.position = 'fixed';
+    cancelbtn.style.bottom = '100px';
+    cancelbtn.style.right = '20px';
+    cancelbtn.style.zIndex = 9999;
+    cancelbtn.style.padding = '10px';
+    cancelbtn.style.backgroundColor = '#f0b90b';
+    cancelbtn.style.border = 'none';
+    cancelbtn.style.color = 'black';
+    cancelbtn.style.fontWeight = 'bold';
+    cancelbtn.style.borderRadius = '8px';
+    cancelbtn.onclick = () => StopTradingCycle();
+
+
+    const clearbtn = document.createElement('button');
+    clearbtn.textContent = '清理交易数据';
+    clearbtn.style.position = 'fixed';
+    clearbtn.style.bottom = '20px';
+    clearbtn.style.right = '20px';
+    clearbtn.style.zIndex = 9999;
+    clearbtn.style.padding = '10px';
+    clearbtn.style.backgroundColor = '#f0b90b';
+    clearbtn.style.border = 'none';
+    clearbtn.style.color = 'black';
+    clearbtn.style.fontWeight = 'bold';
+    clearbtn.style.borderRadius = '8px';
+    clearbtn.onclick = () => ClearTradeData();
+
+    document.body.appendChild(btn);
+    document.body.appendChild(cancelbtn);
+    document.body.appendChild(clearbtn);
+}
+
 
 // 暴露为全局函数（油猴 @require 加载时默认执行并挂载到 window）
 window.MY_getBestPriceByWeightedVolume = getBestPriceByWeightedVolume;
@@ -245,3 +394,4 @@ window.MY_placeOrder = placeOrder;
 window.MY_CancelOrder = CancelOrder;
 window.MY_BuyOrderCreate = BuyOrderCreate;
 window.MY_SellOrderCreate = SellOrderCreate;
+window.MY_CreateUI = CreateUI;
