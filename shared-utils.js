@@ -386,7 +386,8 @@ async function startTradingCycle(times = 10) {
         clearLock = false;
     }, 1000);
     
-    window.MY_MaxTradeNumber = parseInt(localStorage.getItem('totalTradeAmount'+ MYcoinName) || 500);
+    window.MY_PerTradeNumber = parseInt(localStorage.getItem('singleBuyQty'+ MYcoinName) || 500);
+    window.MY_MaxTradeNumber = parseInt(localStorage.getItem('totalTradeAmount'+ MYcoinName) || 65536);
     
     sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
     if (!window.headerReady) {
