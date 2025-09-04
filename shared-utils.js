@@ -2,7 +2,7 @@
 
 /**
  * 获取 VWAP 中间价格
- * @param {'BUY' | 'SELL'} direction 
+ * @param {'BUY' | 'SELL'} direction
  * @param {number} tradeDecimal 小数精度
  * @returns {Promise<string|null>}
  */
@@ -84,7 +84,7 @@ function UpdateTradeHistoryData() {
 }
 
 function getBestPriceByWeightedVolume1(direction = 'BUY') {
-    
+
 }
 
 function getBestPriceByWeightedVolume(direction = 'BUY') {
@@ -103,7 +103,7 @@ function getBestPriceByWeightedVolume(direction = 'BUY') {
         return (vwap * 1.00005).toFixed(window.tradeDecimal);
     }
 }
-    
+
 function roundTo6AndTrimZeros(num) {
     // 四舍五入到 6 位小数
     const rounded = Number(parseFloat(num).toFixed(window.tradeDecimal));
@@ -432,18 +432,18 @@ async function startTradingCycle(times = 10) {
     setTimeout(() => {
         clearLock = false;
     }, 1000);
-    
+
     window.MY_PerTradeNumber = parseInt(localStorage.getItem('singleBuyQty'+ MYcoinName) || 500);
     window.MY_MaxTradeNumber = parseInt(localStorage.getItem('totalTradeAmount'+ MYcoinName) || 65536);
-    
+
    //sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
-    
+
     if (!window.headerReady) {
         alert("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         window.MY_logToPanel("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         return;
     }
-    
+
     SaleCoin(0);  //检查之前交易是否有未卖出币
 
     totalBuy = parseFloat(localStorage.getItem('totalBuyValue'+ MYcoinName) || '0');
@@ -497,7 +497,7 @@ async function startTradingCycle(times = 10) {
 
         localStorage.setItem('totalBuyValue'+ MYcoinName , totalBuy);
         localStorage.setItem('totalSaleValue'+ MYcoinName , totalSale);
-        
+
         nowTradeNumberPanel.textContent = "当前交易金额:" + totalBuy;
         nowTradeSaleNumber.textContent = "当前亏损:" + (totalSale - totalBuy);
     }
@@ -546,8 +546,8 @@ async function SaleCoin(i) {
     {
         return 0;
     }
-   
-    let sellPrice = await window.MY_SellOrderCreate(saleNumber);   
+
+    let sellPrice = await window.MY_SellOrderCreate(saleNumber);
     if(sellPrice == null)
     {  //历史订单数量不够
         return null;
@@ -721,7 +721,7 @@ function CreateUI() {
     btn.style.fontWeight = 'bold';
     btn.style.borderRadius = '8px';
     btn.onclick = () => startTradingCycle();
-    
+
     const cancelbtn = document.createElement('button');
     cancelbtn.textContent = '结束交易';
     cancelbtn.style.position = 'fixed';
@@ -764,14 +764,14 @@ function CreateUI() {
     saleCoin.style.fontWeight = 'bold';
     saleCoin.style.borderRadius = '8px';
     saleCoin.onclick = () =>SaleCoin(0)
-    } 
+
 
     document.body.appendChild(btn);
     document.body.appendChild(cancelbtn);
     document.body.appendChild(clearbtn);
     document.body.appendChild(saleCoin);
-    
-    logToPanel("UI创建完成")
+
+    logToPanel("UI创建完成");
 }
 
 
