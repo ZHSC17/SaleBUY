@@ -41,7 +41,7 @@ async function getBestPriceByWeightedVolume(direction = 'BUY') {
 
     if (direction === 'BUY') {
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
-        return (vwap * 0.9999).toFixed(window.tradeDecimal);
+        return (vwap * 0.99992).toFixed(window.tradeDecimal);
     } else {
         // 卖出：参考 VWAP 并稍微往上抬
         return (vwap * 1.00005).toFixed(window.tradeDecimal);
