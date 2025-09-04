@@ -49,7 +49,7 @@ function WebViewIsNormal()
 function UpdateTradeHistoryData() {
     const rows = Array.from(
         document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
-    );
+    ).reverse();
 
     const newData = rows.map(div => {
         const timeText   = div.children[0]?.textContent || ''; // 时间
@@ -80,12 +80,12 @@ function UpdateTradeHistoryData() {
     }
 
     if (tradeHistory.length > 300) {
-        tradeHistory = tradeHistory.slice(tradeHistory.length - 300);
+        tradeHistory = tradeHistory.slice(-300);
     }
 }
 
 function BasePriceByWeightedVolume(direction = 'BUY') {
-    data = tradeHistory.slice(0, 10);
+    data = tradeHistory.slice(-10);
     if (data.length === 0) return null;
 
     // 计算成交量加权平均价 VWAP
@@ -481,7 +481,7 @@ async function startTradingCycle(times = 10) {
         i++;
         window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
 
-        let nowTradBuyNumber = await BuyCoin(buyNumber);
+        let nowTradBuyNumber = await BuyCoin(i);
         if(nowTradBuyNumber == null)
             continue;
 
@@ -516,7 +516,7 @@ async function startTradingCycle(times = 10) {
     alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
 }
 
-async function BuyCoin(buyNumber) {
+async function BuyCoin(i) {
     let buyPrice = await window.MY_BuyOrderCreate(window.MY_PerTradeNumber);
     if(buyPrice == null)
     {
