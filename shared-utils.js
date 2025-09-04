@@ -437,14 +437,19 @@ async function startTradingCycle(times = 10) {
     window.MY_PerTradeNumber = parseInt(localStorage.getItem('singleBuyQty'+ MYcoinName) || 500);
     window.MY_MaxTradeNumber = parseInt(localStorage.getItem('totalTradeAmount'+ MYcoinName) || 65536);
     
-    sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
+   //sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
+    
     if (!window.headerReady) {
         alert("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         window.MY_logToPanel("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         return;
     }
+    
+    SaleCoin(0);  //检查之前交易是否有未卖出币
+
     totalBuy = parseFloat(localStorage.getItem('totalBuyValue'+ MYcoinName) || '0');
     totalSale = parseFloat(localStorage.getItem('totalSaleValue'+ MYcoinName) || '0');
+
     if(totalBuy > window.MY_MaxTradeNumber)
     {
         window.playBase64();
@@ -452,8 +457,12 @@ async function startTradingCycle(times = 10) {
         return;
     }
     isCircle = true;
-    let i = 1
-    for (; i <= 100000; i++) {
+    let i = 0
+    while (true) {
+        if(totalBuy > window.MY_MaxTradeNumber)  //交易数量达到
+        {
+            break;
+        }
         UpdateTradeHistoryData();
         if(tradeHistory.length < 50)
         {
@@ -461,72 +470,22 @@ async function startTradingCycle(times = 10) {
             await new Promise(r => setTimeout(r, 10000));
             continue;
         }
-        window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
-        if(totalBuy + window.MY_PerTradeNumber > window.MY_MaxTradeNumber)
-        {
-            window.playBase64();
-            alert(`🎉 已完成交易 总交易额 ${totalBuy}`);
-            return;
-        }
-        if(totalBuy + window.MY_PerTradeNumber > totalSale)
-        {
-            window.playBase64();
-        }
-        let buyPrice = await window.MY_BuyOrderCreate(window.MY_PerTradeNumber);
-        if(buyPrice == null)
-        {
-            continue;
-        }
-        let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
-        let myquantity = window.MY_PerTradeNumber
-        let nowTradBuyNumber = 0;
-        let nowTradSaleNumber = 0;
-        if(result != null)
-            nowTradBuyNumber += parseFloat(result.cumQuote);
-        while(!result.state)
-        {
-            await new Promise(r => setTimeout(r, pollInterval));
-            const executedQty = parseFloat(result.executedQty);
-            myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
-            buyPrice = await window.MY_BuyOrderCreate(myquantity);
-            if(buyPrice == null)
-            {
-                break;
-            }
-            result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
-            if(result != null)
-                nowTradBuyNumber += parseFloat(result.cumQuote);
-        }
 
+        i++;
+        window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
+
+        let nowTradBuyNumber = await BuyCoin(buyNumber);
+        if(nowTradBuyNumber == null)
+            continue;
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
             break;
         }
 
-        let sellPrice = await window.MY_SellOrderCreate(sellquantity);
-        if(sellPrice == null)
-        {
+        const nowTradSaleNumber = await SaleCoin(i)
+        if(nowTradSaleNumber == null)
             continue;
-        }
-        result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
-        myquantity = sellquantity
-        if(result != null)
-            nowTradSaleNumber += parseFloat(result.cumQuote);
-        while(!result.state)
-        {
-            await new Promise(r => setTimeout(r, pollInterval));
-            const executedQty = parseFloat(result.executedQty);
-            myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
-            sellPrice = await window.MY_SellOrderCreate(myquantity);
-            if(sellPrice == null)
-            {
-                break;
-            }
-            result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
-            if(result != null)
-                nowTradSaleNumber += parseFloat(result.cumQuote);
-        }
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
@@ -542,14 +501,6 @@ async function startTradingCycle(times = 10) {
         
         nowTradeNumberPanel.textContent = "当前交易金额:" + totalBuy;
         nowTradeSaleNumber.textContent = "当前亏损:" + (totalSale - totalBuy);
-        if(totalBuy > window.MY_MaxTradeNumber)
-        {
-            window.playBase64();
-            window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
-            await new Promise(r => setTimeout(r, 2000));
-            alert(`🎉 已完成交易 总交易额 ${totalBuy}`);
-            return;
-        }
     }
     isCircle = false;
     window.playBase64();
@@ -558,12 +509,134 @@ async function startTradingCycle(times = 10) {
     alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
 }
 
-async function SaleCoin() {
-    
+async function BuyCoin(buyNumber) {
+    let buyPrice = await window.MY_BuyOrderCreate(window.MY_PerTradeNumber);
+    if(buyPrice == null)
+    {
+        return null;
+    }
+    let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+    let myquantity = window.MY_PerTradeNumber
+    let nowTradBuyNumber = 0;
+    if(result.state != null)
+    {
+        nowTradBuyNumber += parseFloat(result.cumQuote);
+    }
+    while(result.state == null || nowTradBuyNumber <= 10)    //只要买入在10U以上，部分成交，也直接卖出，不等待全部成交
+    {
+        await new Promise(r => setTimeout(r, pollInterval));
+        const executedQty = parseFloat(result.executedQty);
+        myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
+        buyPrice = await window.MY_BuyOrderCreate(myquantity);
+        if(buyPrice == null)
+        {
+            break;
+        }
+        result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+        if(result.state != null)
+            nowTradBuyNumber += parseFloat(result.cumQuote);
+    }
+    return nowTradBuyNumber;
+}
+
+async function SaleCoin(i) {
+    let nowTradSaleNumber = 0;
+    const coinData = await GetAlphaRemaining();
+    const saleNumber = roundTo2AndTrimZeros(coinData.amount , 2);
+    if(saleNumber < 0.1)
+    {
+        return 0;
+    }
+   
+    let sellPrice = await window.MY_SellOrderCreate(saleNumber);   
+    if(sellPrice == null)
+    {  //历史订单数量不够
+        return null;
+    }
+
+    result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+    myquantity = saleNumber
+    if(result.state != null)
+        nowTradSaleNumber += parseFloat(result.cumQuote);
+    while(!result.state)
+    {
+        await new Promise(r => setTimeout(r, pollInterval));
+        const executedQty = parseFloat(result.executedQty);
+        myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
+        sellPrice = await window.MY_SellOrderCreate(myquantity);
+        if(sellPrice == null)
+        {
+            return null;
+        }
+        result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+        if(result.state != null)
+            nowTradSaleNumber += parseFloat(result.cumQuote);
+    }
+    return nowTradSaleNumber;
 }
 
 async function GetAlphaRemaining() {
-    
+    let count = 0;
+    while(true && isCircle)
+    {
+        try {
+            const url = `https://www.binance.com/bapi/defi/v1/private/wallet-direct/cloud-wallet/alpha`;
+
+            // 给 fetch 加超时
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 5 秒超时
+
+            const res = await fetch(
+                url,
+                {
+                    method: 'GET',
+                    headers: window.capturedHeaders,
+                    credentials: 'include',
+                    signal: controller.signal
+                }
+            );
+            clearTimeout(timeoutId);
+
+            const json = await res.json();
+            // {
+            //     "chainId": "56",
+            //     "contractAddress": "0xff7d6a96ae471bbcd7713af9cb1feeb16cf56b41",
+            //     "cexAsset": false,
+            //     "name": "Bedrock",
+            //     "symbol": "BR",
+            //     "tokenId": "ALPHA_118",
+            //     "free": "0.009288",
+            //     "freeze": "0",
+            //     "locked": "0",
+            //     "withdrawing": "0",
+            //     "amount": "0.009288",
+            //     "valuation": "0.0006311"
+            // }
+            if (json.success && Array.isArray(json.data.list)) {
+                const targetCoin = json.data.list.find(order => order.tokenId === window.baseAsset || order.tokenId === String(window.baseAsset));
+                if (targetCoin) {
+                    return targetCoin;
+                } else {
+                    return null;
+                }
+            } else {
+                if(count >= 3)
+                {
+                    window.playBase64();
+                }
+                window.MY_logToPanel("❌ 查询订单失败: " + json.message );
+            }
+        } catch (err) {
+            if(count >= 3)
+            {
+                window.playBase64();
+            }
+            window.MY_logToPanel("⚠️ 请求查询订单异常: " + err.message);
+        }
+        count++;
+        await new Promise(r => setTimeout(r, pollInterval));
+
+    }
 }
 
 function CreateUI() {
@@ -679,9 +752,30 @@ function CreateUI() {
     clearbtn.style.borderRadius = '8px';
     clearbtn.onclick = () => ClearTradeData();
 
+    const saleCoin = document.createElement('button');
+    saleCoin.textContent = '卖出当前币';
+    saleCoin.style.position = 'fixed';
+    saleCoin.style.bottom = '20px';
+    saleCoin.style.right = '80px';
+    saleCoin.style.zIndex = 9999;
+    saleCoin.style.padding = '10px';
+    saleCoin.style.backgroundColor = '#f0b90b';
+    saleCoin.style.border = 'none';
+    saleCoin.style.color = 'black';
+    saleCoin.style.fontWeight = 'bold';
+    saleCoin.style.borderRadius = '8px';
+    saleCoin.onclick = () =>{
+        const saleNumber = await SaleCoin(0);
+        if(saleNumber != null)
+        {
+            logToPanel("卖出成功,交易金额:" + saleNumber)
+        };
+    } 
+
     document.body.appendChild(btn);
     document.body.appendChild(cancelbtn);
     document.body.appendChild(clearbtn);
+    document.body.appendChild(saleCoin);
     
     logToPanel("UI创建完成")
 }
