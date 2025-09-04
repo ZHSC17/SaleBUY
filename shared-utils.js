@@ -763,12 +763,7 @@ function CreateUI() {
     saleCoin.style.color = 'black';
     saleCoin.style.fontWeight = 'bold';
     saleCoin.style.borderRadius = '8px';
-    saleCoin.onclick = () =>{
-        const saleNumber = await SaleCoin(0);
-        if(saleNumber != null)
-        {
-            logToPanel("卖出成功,交易金额:" + saleNumber)
-        };
+    saleCoin.onclick = () =>SaleCoin(0)
     } 
 
     document.body.appendChild(btn);
