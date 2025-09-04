@@ -10,7 +10,7 @@ const quoteAsset = "USDT";
 const timeoutMs = 5000;
 const pollInterval = 500;
 
-let totalSale = 0;
+let totalBuy = 0;
 let isCircle = false;
 let orderid = 0;
 let sellquantity = 1000000;
@@ -18,6 +18,7 @@ let clearLock = false;
 
 var MYcoinName;
 var nowTradeNumberPanel;
+var nowTradeSaleNumber;
 
 
 async function getBestPriceByWeightedVolume(direction = 'BUY') {
@@ -262,7 +263,7 @@ async function StopTradingCycle() {
 }
 
 async function ClearTradeData() {
-    localStorage.setItem('saleValue'+ MYcoinName, 0);
+    localStorage.setItem('totalBuyValue'+ MYcoinName, 0);
     window.playBase64();
     window.MY_logToPanel(`已清理历史交易数据`);
 }
@@ -333,7 +334,8 @@ async function waitUntilFilled(keyword,index,price) {
                 {
                     window.MY_logToPanel(`第 ${index} 轮交易🎯 检测到成交: ` + keyword);
                     let result = {
-                        state : true
+                        state : true,
+                        cumQuote :orderState.cumQuote
                     }
                     return result;
                 }
@@ -353,7 +355,8 @@ async function waitUntilFilled(keyword,index,price) {
                             {
                                 let result = {
                                     state : false,
-                                    executedQty :orderState.executedQty
+                                    executedQty :orderState.executedQty,
+                                    cumQuote :orderState.cumQuote
                                 }
                                 return result
                             }
@@ -362,8 +365,9 @@ async function waitUntilFilled(keyword,index,price) {
                 }
                 else
                 {
+                    CancelOrder();
                     let result = {
-                        state : true
+                        state : null
                     }
                     return result;
                 }
@@ -373,8 +377,9 @@ async function waitUntilFilled(keyword,index,price) {
             window.MY_logToPanel("⚠️ 请求异常: " + err.message);
         }
     }
+    CancelOrder();
     let result = {
-        state : true
+        state : null
     }
     return result;
 }
@@ -398,11 +403,12 @@ async function startTradingCycle(times = 10) {
         window.MY_logToPanel("⚠️ 请先手动点击历史委托（在网页里）， 才能捕获验证信息");
         return;
     }
-    totalSale = parseFloat(localStorage.getItem('saleValue'+ MYcoinName) || '0');
-    if(totalSale > window.MY_MaxTradeNumber)
+    totalBuy = parseFloat(localStorage.getItem('totalBuyValue'+ MYcoinName) || '0');
+    totalSale = parseFloat(localStorage.getItem('totalSaleValue'+ MYcoinName) || '0');
+    if(totalBuy > window.MY_MaxTradeNumber)
     {
         window.playBase64();
-        alert(`🎉 已完成交易 总交易额 ${totalSale}`);
+        alert(`🎉 已完成交易 总交易额 ${totalBuy}`);
         return;
     }
     isCircle = true;
@@ -412,6 +418,10 @@ async function startTradingCycle(times = 10) {
         let buyPrice = await window.MY_BuyOrderCreate(window.MY_PerTradeNumber);
         let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
         let myquantity = window.MY_PerTradeNumber
+        let nowTradBuyNumber = 0;
+        let nowTradSaleNumber = 0;
+        if(result != null)
+            nowTradBuyNumber += parseFloat(result.cumQuote);
         while(!result.state)
         {
             await new Promise(r => setTimeout(r, pollInterval));
@@ -419,9 +429,10 @@ async function startTradingCycle(times = 10) {
             myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
             buyPrice = await window.MY_BuyOrderCreate(myquantity);
             result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+            if(result != null)
+                nowTradBuyNumber += parseFloat(result.cumQuote);
         }
 
-        totalSale += buyPrice * window.MY_PerTradeNumber;
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
@@ -431,6 +442,8 @@ async function startTradingCycle(times = 10) {
         let sellPrice = await window.MY_SellOrderCreate(sellquantity);
         result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
         myquantity = sellquantity
+        if(result != null)
+            nowTradSaleNumber += parseFloat(result.cumQuote);
         while(!result.state)
         {
             await new Promise(r => setTimeout(r, pollInterval));
@@ -438,29 +451,38 @@ async function startTradingCycle(times = 10) {
             myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
             sellPrice = await window.MY_SellOrderCreate(myquantity);
             result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+            if(result != null)
+                nowTradSaleNumber += parseFloat(result.cumQuote);
         }
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
             break;
         }
-        window.MY_logToPanel(`✅ 第 ${i} 轮交易完成 现在总交易额${totalSale}`);
-        localStorage.setItem('saleValue'+ MYcoinName , totalSale);
-        nowTradeNumberPanel.textContent = "当前交易金额:" + totalSale;
-        if(totalSale > window.MY_MaxTradeNumber)
+        totalBuy += nowTradBuyNumber;
+        totalSale += nowTradSaleNumber;
+
+        window.MY_logToPanel(`✅ 第 ${i} 轮交易完成 现在总交易额${totalBuy}`);
+
+        localStorage.setItem('totalBuyValue'+ MYcoinName , totalBuy);
+        localStorage.setItem('totalSaleValue'+ MYcoinName , totalSale);
+        
+        nowTradeNumberPanel.textContent = "当前交易金额:" + totalBuy;
+        nowTradeSaleNumber.textContent = "当前亏损:" + (totalSale - totalBuy);
+        if(totalBuy > window.MY_MaxTradeNumber)
         {
             window.playBase64();
-            window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
+            window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
             await new Promise(r => setTimeout(r, 2000));
-            alert(`🎉 已完成交易 总交易额 ${totalSale}`);
+            alert(`🎉 已完成交易 总交易额 ${totalBuy}`);
             return;
         }
     }
     isCircle = false;
     window.playBase64();
-    window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
+    window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
     await new Promise(r => setTimeout(r, 2000));
-    alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalSale}`);
+    alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
 }
    
 
@@ -468,7 +490,7 @@ function CreateUI() {
     MYcoinName = window.coinName
 
     nowTradeNumberPanel = document.createElement('nowTradeNumber');
-    nowTradeNumberPanel.textContent = "当前交易金额:" + (localStorage.getItem('saleValue' + MYcoinName) || 0);
+    nowTradeNumberPanel.textContent = "当前交易金额:" + (localStorage.getItem('totalBuyValue' + MYcoinName) || 0);
     nowTradeNumberPanel.style.position = 'fixed';
     nowTradeNumberPanel.style.bottom = '210px';
     nowTradeNumberPanel.style.right = '20px';
@@ -476,6 +498,16 @@ function CreateUI() {
     nowTradeNumberPanel.style.color = 'white';
     nowTradeNumberPanel.style.backgroundColor = "green";
     document.body.appendChild(nowTradeNumberPanel);
+
+    nowTradeSaleNumber = document.createElement('nowTradeSaleNumber');
+    nowTradeSaleNumber.textContent = "当前亏损:" + ((localStorage.getItem('totalSaleValue' + MYcoinName) || 0) - (localStorage.getItem('totalBuyValue' + MYcoinName) || 0));
+    nowTradeSaleNumber.style.position = 'fixed';
+    nowTradeSaleNumber.style.bottom = '240px';
+    nowTradeSaleNumber.style.right = '20px';
+    nowTradeSaleNumber.style.zIndex = 9999;
+    nowTradeSaleNumber.style.color = 'white';
+    nowTradeSaleNumber.style.backgroundColor = "green";
+    document.body.appendChild(nowTradeSaleNumber);
 
     const totalLabel = document.createElement('label');
     totalLabel.textContent = "总交易金额:";
