@@ -312,6 +312,7 @@ async function StopTradingCycle() {
 
 async function ClearTradeData() {
     localStorage.setItem('totalBuyValue'+ MYcoinName, 0);
+    localStorage.setItem('totalSaleValue'+ MYcoinName, 0);
     window.playBase64();
     window.MY_logToPanel(`已清理历史交易数据`);
 }
@@ -470,7 +471,7 @@ async function startTradingCycle(times = 10) {
         {
             break;
         }
-        if(tradeHistory.length < 50)
+        if(tradeHistory.length < 30)
         {
             window.MY_logToPanel(`等待统计历史交易记录`);
             await new Promise(r => setTimeout(r, 10000));
@@ -810,7 +811,7 @@ function CreateUI() {
     btn.style.fontWeight = 'bold';
     btn.style.borderRadius = '8px';
     btn.onclick = () => startTradingCycle();
-    btn.disabled = true;
+    btn.style.display = "none";
 
     const cancelbtn = document.createElement('button');
     cancelbtn.textContent = '结束交易';
@@ -859,26 +860,29 @@ function CreateUI() {
         isCircle = false;
                              }
 
-    saleCoin.disabled = true;
+    saleCoin.style.display = "none";
 
     document.body.appendChild(btn);
     document.body.appendChild(cancelbtn);
     document.body.appendChild(clearbtn);
     document.body.appendChild(saleCoin);
 
-    LoopUpdateHistoryData();
+    LoopUpdateHistoryData(btn,saleCoin);
 
     logToPanel("UI创建完成");
 
 }
 
-async function LoopUpdateHistoryData() {
+var isLoadHistory = false;
+async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
         UpdateTradeHistoryData();
-        if(tradeHistory.length > 50){
-            btn.disabled = false;
-            saleCoin.disabled = false;
+        if(!isLoadHistory && tradeHistory.length > 30){
+            isLoadHistory = true;
+            btn.style.display = "block";
+            saleCoin.style.display = "block";
+            logToPanel("交易数据读取完成");
         }
         await new Promise(r => setTimeout(r, 10000));
     }
