@@ -8,31 +8,88 @@
  */
 const quoteAsset = "USDT";
 const timeoutMs = 5000;
-const pollInterval = 500;
+const pollInterval = 700;
 
 let totalBuy = 0;
 let isCircle = false;
 let orderid = 0;
 let sellquantity = 1000000;
 let clearLock = false;
+let tradeHistory = [];
 
 var MYcoinName;
 var nowTradeNumberPanel;
 var nowTradeSaleNumber;
 
 
-async function getBestPriceByWeightedVolume(direction = 'BUY') {
-    const rows = Array.from( document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
-    );
-    // 解析价格和成交量
-    const data = rows.map(div => {
-        const priceText = div.children[1]?.textContent || '';
-        const volumeText = div.children[2]?.textContent || '';
-        const price = parseFloat(priceText.replace(/,/g, ''));
-        const volume = parseFloat(volumeText.replace(/,/g, ''));
-        return (isNaN(price) || isNaN(volume)) ? null : { price, volume };
-    }).filter(item => item !== null).slice(0, 10);
+function WebViewIsNormal()
+{
+     if (tradeHistory.length > 0) {
+        const latestTrade = tradeHistory[tradeHistory.length - 1];
 
+        // 把 HH:mm:ss 拼接到今天日期
+        const now = new Date();
+        const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+        const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
+
+        const diffSec = (now - tradeTime) / 1000;
+
+        if (diffSec > 15) {
+            return false;
+        }
+        else{
+            return true;
+        }
+    }
+    return false;
+}
+
+
+function UpdateTradeHistoryData() {
+    const rows = Array.from(
+        document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
+    );
+
+    const newData = rows.map(div => {
+        const timeText   = div.children[0]?.textContent || ''; // 时间
+        const priceText  = div.children[1]?.textContent || ''; // 价格
+        const volumeText = div.children[2]?.textContent || ''; // 数量
+
+        const price  = parseFloat(priceText.replace(/,/g, ''));
+        const volume = parseFloat(volumeText.replace(/,/g, ''));
+
+        // 主动方（根据颜色判断）
+        const colorStyle = div.children[1]?.getAttribute('style') || '';
+        let side = '';
+        if (colorStyle.includes('Buy')) side = 'BUY';
+        else if (colorStyle.includes('Sell')) side = 'SELL';
+
+        return (isNaN(price) || isNaN(volume) || !timeText)
+            ? null
+            : { time: timeText, price, volume, side };
+    }).filter(item => item !== null);
+
+    for (const trade of newData) {
+        const exists = tradeHistory.some(
+            t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
+        );
+        if (!exists) {
+            tradeHistory.push(trade);
+        }
+    }
+
+    if (tradeHistory.length > 300) {
+        tradeHistory = tradeHistory.slice(tradeHistory.length - 300);
+    }
+}
+
+
+function getBestPriceByWeightedVolume1(direction = 'BUY') {
+    
+}
+
+function getBestPriceByWeightedVolume(direction = 'BUY') {
+    data = tradeHistory.slice(0, 10);
     if (data.length === 0) return null;
 
     // 计算成交量加权平均价 VWAP
@@ -47,35 +104,6 @@ async function getBestPriceByWeightedVolume(direction = 'BUY') {
         return (vwap * 1.00005).toFixed(window.tradeDecimal);
     }
 }
-
-
-//     async function getBestPriceByWeightedVolume() {
-//         await new Promise(r => setTimeout(r, 1000)); // 等待 DOM 渲染
-
-//         const rows = Array.from(document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div'));
-
-//         const priceVolumes = rows.map(div => {
-//             const priceText = div.children[1]?.textContent || '';
-//             const amountText = div.children[2]?.textContent || '';
-//             const price = parseFloat(priceText);
-//             const amount = parseFloat(amountText);
-//             if (isNaN(price) || isNaN(amount)) return null;
-//             return { price, volume: price * amount };
-//         }).filter(Boolean);
-
-//         if (priceVolumes.length === 0) return null;
-
-//         // 按 volume 从大到小排序
-//         const sorted = priceVolumes.sort((a, b) => b.volume - a.volume);
-
-//         // 取前3名（或全部）
-//         const top = sorted.slice(0, 3);
-
-//         // 按价格从小到大排序 → 返回中间那一个价格
-//         const priceMiddle = top.sort((a, b) => a.price - b.price)[Math.floor(top.length / 2)];
-
-//         return priceMiddle.price;
-//     }
     
 function roundTo6AndTrimZeros(num) {
     // 四舍五入到 6 位小数
@@ -182,7 +210,6 @@ async function placeOrder(payload) {
 
 }
 
-
 async function CancelOrder() {
     try {
         const payLoad = {
@@ -226,22 +253,36 @@ async function CancelOrder() {
 
 async function BuyOrderCreate(count)
 {
-        let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
-        let buyAmount = window.MY_roundTo2AndTrimZeros((buyPrice * count).toFixed(window.tradeDecimal + 5) , window.tradeDecimal);
-        await window.MY_placeOrder({
-            baseAsset: window.baseAsset,
-            quoteAsset,
-            side: "BUY",
-            price: buyPrice,
-            quantity:count,
-            paymentDetails: [
-                { amount: buyAmount, paymentWalletType: "CARD" }
-            ]
-        });
+    UpdateTradeHistoryData();
+    if(!WebViewIsNormal)
+    {
+        window.playBase64();
+        window.MY_logToPanel(`交易数据错误！请检查！`);
+        return null;
+    }
+    let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
+    let buyAmount = window.MY_roundTo2AndTrimZeros((buyPrice * count).toFixed(window.tradeDecimal + 5) , window.tradeDecimal);
+    await window.MY_placeOrder({
+        baseAsset: window.baseAsset,
+        quoteAsset,
+        side: "BUY",
+        price: buyPrice,
+        quantity:count,
+        paymentDetails: [
+            { amount: buyAmount, paymentWalletType: "CARD" }
+        ]
+    });
     return buyPrice;
 }
 async function SellOrderCreate(count)
 {
+    UpdateTradeHistoryData();
+    if(!WebViewIsNormal)
+    {
+        window.playBase64();
+        window.MY_logToPanel(`交易数据错误！请检查！`);
+        return null;
+    }
     const sellPrice = await window.MY_getBestPriceByWeightedVolume("SELL");
     await window.MY_placeOrder({
         baseAsset: window.baseAsset,
@@ -383,7 +424,6 @@ async function waitUntilFilled(keyword,index,price) {
     }
     return result;
 }
-
     // 循环交易主逻辑
 async function startTradingCycle(times = 10) {
     if(window.tradeDecimal == -1) return;
@@ -414,8 +454,29 @@ async function startTradingCycle(times = 10) {
     isCircle = true;
     let i = 1
     for (; i <= 100000; i++) {
+        UpdateTradeHistoryData();
+        if(tradeHistory.length < 50)
+        {
+            window.MY_logToPanel(`等待统计历史交易记录`);
+            await new Promise(r => setTimeout(r, 10000));
+            continue;
+        }
         window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
+        if(totalBuy + window.MY_PerTradeNumber > window.MY_MaxTradeNumber)
+        {
+            window.playBase64();
+            alert(`🎉 已完成交易 总交易额 ${totalBuy}`);
+            return;
+        }
+        if(totalBuy + window.MY_PerTradeNumber > totalSale)
+        {
+            window.playBase64();
+        }
         let buyPrice = await window.MY_BuyOrderCreate(window.MY_PerTradeNumber);
+        if(buyPrice == null)
+        {
+            continue;
+        }
         let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
         let myquantity = window.MY_PerTradeNumber
         let nowTradBuyNumber = 0;
@@ -428,6 +489,10 @@ async function startTradingCycle(times = 10) {
             const executedQty = parseFloat(result.executedQty);
             myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
             buyPrice = await window.MY_BuyOrderCreate(myquantity);
+            if(buyPrice == null)
+            {
+                break;
+            }
             result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
             if(result != null)
                 nowTradBuyNumber += parseFloat(result.cumQuote);
@@ -440,6 +505,10 @@ async function startTradingCycle(times = 10) {
         }
 
         let sellPrice = await window.MY_SellOrderCreate(sellquantity);
+        if(sellPrice == null)
+        {
+            continue;
+        }
         result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
         myquantity = sellquantity
         if(result != null)
@@ -450,6 +519,10 @@ async function startTradingCycle(times = 10) {
             const executedQty = parseFloat(result.executedQty);
             myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
             sellPrice = await window.MY_SellOrderCreate(myquantity);
+            if(sellPrice == null)
+            {
+                break;
+            }
             result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
             if(result != null)
                 nowTradSaleNumber += parseFloat(result.cumQuote);
@@ -484,7 +557,14 @@ async function startTradingCycle(times = 10) {
     await new Promise(r => setTimeout(r, 2000));
     alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
 }
-   
+
+async function SaleCoin() {
+    
+}
+
+async function GetAlphaRemaining() {
+    
+}
 
 function CreateUI() {
     MYcoinName = window.coinName
@@ -607,7 +687,7 @@ function CreateUI() {
 }
 
 
-// 暴露为全局函数（油猴 @require 加载时默认执行并挂载到 window）
+// 暴露为全局函数（油猴 @require 加载时默认执行并挂载到 window），
 window.MY_getBestPriceByWeightedVolume = getBestPriceByWeightedVolume;
 window.MY_roundTo6AndTrimZeros = roundTo6AndTrimZeros;
 window.MY_roundTo2AndTrimZeros = roundTo2AndTrimZeros;
