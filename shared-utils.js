@@ -83,7 +83,6 @@ function UpdateTradeHistoryData() {
     }
 }
 
-
 function getBestPriceByWeightedVolume1(direction = 'BUY') {
     
 }
