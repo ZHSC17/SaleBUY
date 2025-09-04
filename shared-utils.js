@@ -20,6 +20,7 @@ let tradeHistory = [];
 var MYcoinName;
 var nowTradeNumberPanel;
 var nowTradeSaleNumber;
+var tradeTypeDropdown;
 
 
 function WebViewIsNormal()
@@ -83,11 +84,7 @@ function UpdateTradeHistoryData() {
     }
 }
 
-function getBestPriceByWeightedVolume1(direction = 'BUY') {
-
-}
-
-function getBestPriceByWeightedVolume(direction = 'BUY') {
+function BasePriceByWeightedVolume(direction = 'BUY') {
     data = tradeHistory.slice(0, 10);
     if (data.length === 0) return null;
 
@@ -102,6 +99,17 @@ function getBestPriceByWeightedVolume(direction = 'BUY') {
         // 卖出：参考 VWAP 并稍微往上抬
         return (vwap * 1.00005).toFixed(window.tradeDecimal);
     }
+}
+
+function getBestPriceByWeightedVolume(direction = 'BUY') {
+
+    const selectedValue = tradeTypeDropdown.value;
+
+    if(selectedValue == "基础低波动策略")
+    {
+        return BasePriceByWeightedVolume(direction);
+    }
+
 }
 
 function roundTo6AndTrimZeros(num) {
@@ -462,7 +470,6 @@ async function startTradingCycle(times = 10) {
         {
             break;
         }
-        UpdateTradeHistoryData();
         if(tradeHistory.length < 50)
         {
             window.MY_logToPanel(`等待统计历史交易记录`);
@@ -641,6 +648,28 @@ async function GetAlphaRemaining() {
 function CreateUI() {
     MYcoinName = window.coinName
 
+    tradeTypeDropdown = document.createElement('select');
+
+    // 添加选项
+    ['基础低波动策略', '基础低波动策略', '基础低波动策略'].forEach((text, index) => {
+        const option = document.createElement('option');
+        option.value = `value${index}`;
+        option.textContent = text;
+        tradeTypeDropdown.appendChild(option);
+    });
+
+    // 设置样式（可选）
+    tradeTypeDropdown.style.position = 'fixed';
+    tradeTypeDropdown.style.bottom = '240px';
+    tradeTypeDropdown.style.right = '20px';
+    tradeTypeDropdown.style.zIndex = 9999;
+    tradeTypeDropdown.style.padding = '5px';
+    tradeTypeDropdown.style.borderRadius = '5px';
+
+    document.body.appendChild(tradeTypeDropdown);
+
+
+
     nowTradeNumberPanel = document.createElement('nowTradeNumber');
     nowTradeNumberPanel.textContent = "当前交易金额:" + (localStorage.getItem('totalBuyValue' + MYcoinName) || 0);
     nowTradeNumberPanel.style.position = 'fixed';
@@ -721,6 +750,7 @@ function CreateUI() {
     btn.style.fontWeight = 'bold';
     btn.style.borderRadius = '8px';
     btn.onclick = () => startTradingCycle();
+    btn.disabled = true;
 
     const cancelbtn = document.createElement('button');
     cancelbtn.textContent = '结束交易';
@@ -769,13 +799,29 @@ function CreateUI() {
         isCircle = false;
                              }
 
+    saleCoin.disabled = true;
 
     document.body.appendChild(btn);
     document.body.appendChild(cancelbtn);
     document.body.appendChild(clearbtn);
     document.body.appendChild(saleCoin);
 
+    LoopUpdateHistoryData();
+
     logToPanel("UI创建完成");
+
+}
+
+async function LoopUpdateHistoryData() {
+    while(true)
+    {
+        UpdateTradeHistoryData();
+        if(tradeHistory.length > 50){
+            btn.disabled = false;
+            saleCoin.disabled = false;
+        }
+        await new Promise(r => setTimeout(r, 10000));
+    }
 }
 
 
