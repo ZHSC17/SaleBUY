@@ -489,6 +489,7 @@ async function startTradingCycle(times = 10) {
             window.MY_logToPanel(`停止自动交易`);
             break;
         }
+        await new Promise(r => setTimeout(r, 200));
 
         const nowTradSaleNumber = await SaleCoin(i)
         if(nowTradSaleNumber == null)
@@ -529,7 +530,7 @@ async function BuyCoin(i) {
     {
         nowTradBuyNumber += parseFloat(result.cumQuote);
     }
-    while(result.state == null || nowTradBuyNumber <= 10)    //只要买入在10U以上，部分成交，也直接卖出，不等待全部成交
+    while(result.state == false || nowTradBuyNumber <= 1)    //只要买入在10U以上，部分成交，也直接卖出，不等待全部成交
     {
         await new Promise(r => setTimeout(r, pollInterval));
         const executedQty = parseFloat(result.executedQty);
@@ -546,18 +547,26 @@ async function BuyCoin(i) {
     return nowTradBuyNumber;
 }
 
-async function SaleCoin(i) {
+async function SaleCoin(i  , showTip = false) {
     let nowTradSaleNumber = 0;
     const coinData = await GetAlphaRemaining();
+    if(coinData == null)
+    {
+        if(showTip)
+            logToPanel("已卖出:" + 0);
+        return 0;
+    }
     const saleNumber = roundTo2AndTrimZeros(coinData.amount , 2);
     if(saleNumber < 0.1)
     {
+        if(showTip)
+            logToPanel("已卖出:" + 0);
         return 0;
     }
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
-    if(sellPrice == null)
-    {  //历史订单数量不够
+    if(sellPrice == null)  //页面卡死
+    {  
         return null;
     }
 
@@ -565,7 +574,7 @@ async function SaleCoin(i) {
     myquantity = saleNumber
     if(result.state != null)
         nowTradSaleNumber += parseFloat(result.cumQuote);
-    while(!result.state)
+    while(result.state == false)
     {
         await new Promise(r => setTimeout(r, pollInterval));
         const executedQty = parseFloat(result.executedQty);
@@ -578,6 +587,11 @@ async function SaleCoin(i) {
         result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
         if(result.state != null)
             nowTradSaleNumber += parseFloat(result.cumQuote);
+    }
+    if(showTip)
+    {
+        logToPanel("已卖出:" + nowTradSaleNumber);
+        isCircle = false;
     }
     return nowTradSaleNumber;
 }
@@ -856,8 +870,7 @@ function CreateUI() {
     saleCoin.style.borderRadius = '8px';
     saleCoin.onclick = () => {
         isCircle = true;
-        SaleCoin(0)
-        isCircle = false;
+        SaleCoin(0,true);
                              }
 
     saleCoin.style.display = "none";
