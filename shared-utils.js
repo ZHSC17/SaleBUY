@@ -623,14 +623,14 @@ async function GetAlphaRemaining() {
                 {
                     window.playBase64();
                 }
-                window.MY_logToPanel("❌ 查询订单失败: " + json.message );
+                window.MY_logToPanel("❌查询拥有Alpha币失败: " + json.message );
             }
         } catch (err) {
             if(count >= 3)
             {
                 window.playBase64();
             }
-            window.MY_logToPanel("⚠️ 请求查询订单异常: " + err.message);
+            window.MY_logToPanel("⚠️ 请求查询拥有Alpha币异常: " + err.message);
         }
         count++;
         await new Promise(r => setTimeout(r, pollInterval));
@@ -755,7 +755,7 @@ function CreateUI() {
     saleCoin.textContent = '卖出当前币';
     saleCoin.style.position = 'fixed';
     saleCoin.style.bottom = '20px';
-    saleCoin.style.right = '80px';
+    saleCoin.style.right = '140px';
     saleCoin.style.zIndex = 9999;
     saleCoin.style.padding = '10px';
     saleCoin.style.backgroundColor = '#f0b90b';
@@ -763,7 +763,11 @@ function CreateUI() {
     saleCoin.style.color = 'black';
     saleCoin.style.fontWeight = 'bold';
     saleCoin.style.borderRadius = '8px';
-    saleCoin.onclick = () =>SaleCoin(0)
+    saleCoin.onclick = () => {
+        isCircle = true;
+        SaleCoin(0)
+        isCircle = false;
+                             }
 
 
     document.body.appendChild(btn);
