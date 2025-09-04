@@ -94,10 +94,10 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
 
     if (direction === 'BUY') {
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
-        return (vwap * 0.99992).toFixed(window.tradeDecimal);
+        return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
     } else {
         // 卖出：参考 VWAP 并稍微往上抬
-        return (vwap * 1.00005).toFixed(window.tradeDecimal);
+        return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
     }
 }
 
@@ -647,26 +647,86 @@ async function GetAlphaRemaining() {
 
 function CreateUI() {
     MYcoinName = window.coinName
+    window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
+    window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
+
+    const BaseTradebuyOffsetLabel = document.createElement('label');
+    BaseTradebuyOffsetLabel.textContent = "买入偏移值:";
+    BaseTradebuyOffsetLabel.style.position = 'fixed';
+    BaseTradebuyOffsetLabel.style.bottom = '70px';
+    BaseTradebuyOffsetLabel.style.right = '250px';
+    BaseTradebuyOffsetLabel.style.zIndex = 9999;
+    BaseTradebuyOffsetLabel.style.color = 'white';
+    BaseTradebuyOffsetLabel.style.backgroundColor = "green";
+
+    const BaseTradebuyOffsetInput = document.createElement('input');
+    BaseTradebuyOffsetInput.type = 'number';
+    BaseTradebuyOffsetInput.value = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; // 默认值
+    BaseTradebuyOffsetInput.style.width = '100px';
+    BaseTradebuyOffsetInput.style.marginLeft = '5px';
+    BaseTradebuyOffsetInput.style.backgroundColor = "white";
+    BaseTradebuyOffsetInput.onchange = () => {
+        localStorage.setItem('BaseTradebuyOffsetValue'+ MYcoinName, BaseTradebuyOffsetInput.value);
+        window.MY_BaseTradebuyOffsetInputNumber = BaseTradebuyOffsetInput.value
+    };
+    BaseTradebuyOffsetLabel.appendChild(BaseTradebuyOffsetInput);
+    document.body.appendChild(BaseTradebuyOffsetLabel);
+
+    // ====== 输入框：单次买入数量 ======
+    const BaseTradeSaleOffsetLabel = document.createElement('label');
+    BaseTradeSaleOffsetLabel.textContent = "卖出偏移值:";
+    BaseTradeSaleOffsetLabel.style.position = 'fixed';
+    BaseTradeSaleOffsetLabel.style.bottom = '90px';
+    BaseTradeSaleOffsetLabel.style.right = '250px';
+    BaseTradeSaleOffsetLabel.style.zIndex = 9999;
+    BaseTradeSaleOffsetLabel.style.color = 'white';
+    BaseTradeSaleOffsetLabel.style.backgroundColor = "green";
+
+    const BaseTradeSaleOffsetInput = document.createElement('input');
+    BaseTradeSaleOffsetInput.type = 'number';
+    BaseTradeSaleOffsetInput.value = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; // 默认值
+    BaseTradeSaleOffsetInput.style.width = '100px';
+    BaseTradeSaleOffsetInput.style.marginLeft = '5px';
+    BaseTradeSaleOffsetInput.style.backgroundColor = "white";
+    BaseTradeSaleOffsetInput.onchange = () => {
+        localStorage.setItem('BaseTradeSaleOffsetValue'+ MYcoinName, BaseTradeSaleOffsetInput.value);
+        window.MY_BaseTradeSaleOffsetInputNumber = BaseTradeSaleOffsetInput.value
+    };
+    BaseTradeSaleOffsetLabel.appendChild(BaseTradeSaleOffsetInput);
+    document.body.appendChild(BaseTradeSaleOffsetLabel);
 
     tradeTypeDropdown = document.createElement('select');
 
     // 添加选项
-    ['基础低波动策略', '基础低波动策略', '基础低波动策略'].forEach((text, index) => {
+    ['基础低波动策略', '基础低波动策略1', '基础低波动策略2'].forEach((text, index) => {
         const option = document.createElement('option');
-        option.value = `value${index}`;
+        option.value = text;
         option.textContent = text;
         tradeTypeDropdown.appendChild(option);
     });
+    tradeTypeDropdown.addEventListener('change', function(event) {
+        const selectedValue = event.target.value;
+        if (selectedValue == '基础低波动策略') {
+            BaseTradebuyOffsetLabel.style.display = 'block';
+            BaseTradeSaleOffsetLabel.style.display = 'block';
+        } else {
+            BaseTradebuyOffsetLabel.style.display = 'none';
+            BaseTradeSaleOffsetLabel.style.display = 'none';
+        }
+    });
+   
 
-    // 设置样式（可选）
+
+     // 设置样式（可选）
     tradeTypeDropdown.style.position = 'fixed';
-    tradeTypeDropdown.style.bottom = '240px';
-    tradeTypeDropdown.style.right = '20px';
+    tradeTypeDropdown.style.bottom = '20px';
+    tradeTypeDropdown.style.right = '250px';
     tradeTypeDropdown.style.zIndex = 9999;
     tradeTypeDropdown.style.padding = '5px';
     tradeTypeDropdown.style.borderRadius = '5px';
 
     document.body.appendChild(tradeTypeDropdown);
+
 
 
 
