@@ -589,7 +589,7 @@ async function SaleCoin(i , saleNumber) {
         if(result.state != null)
             nowTradSaleNumber += parseFloat(result.cumQuote);
     }
-    return nowTradSaleNumber;
+    return (nowTradSaleNumber * 0.9999).toFixed(6);
 }
 
 async function SaleCoinFromWallet(showTip = true) {
@@ -642,7 +642,7 @@ async function SaleCoinFromWallet(showTip = true) {
         logToPanel("已卖出:" + nowTradSaleNumber);
         isCircle = false;
     }
-    return nowTradSaleNumber;
+    return (nowTradSaleNumber * 0.9999).toFixed(6);
 }
 
 async function GetAlphaRemaining() {
@@ -935,7 +935,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.0");
+    logToPanel("UI创建完成 版本V1.0.1");
 
 }
 
@@ -966,5 +966,3 @@ window.MY_CancelOrder = CancelOrder;
 window.MY_BuyOrderCreate = BuyOrderCreate;
 window.MY_SellOrderCreate = SellOrderCreate;
 window.MY_CreateUI = CreateUI;
-
-console.log("🚀 加载成功");
