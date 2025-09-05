@@ -11,6 +11,7 @@ const timeoutMs = 5000;
 const pollInterval = 700;
 
 let totalBuy = 0;
+let totalSale = 0;
 let isCircle = false;
 let orderid = 0;
 let sellquantity = 1000000;
@@ -507,7 +508,7 @@ async function startTradingCycle(times = 10) {
             break;
         }
         totalBuy += result.nowTradBuyNumber;
-        totalSale += nowTradSaleNumber;
+        totalSale += parseFloat(nowTradSaleNumber);
 
         window.MY_logToPanel(`✅ 第 ${i} 轮交易完成 现在总交易额${totalBuy}`);
 
@@ -642,6 +643,7 @@ async function SaleCoinFromWallet(showTip = true) {
         logToPanel("已卖出:" + nowTradSaleNumber);
         isCircle = false;
     }
+
     return (nowTradSaleNumber * 0.9999).toFixed(6);
 }
 
