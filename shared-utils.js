@@ -689,9 +689,6 @@ async function GetAlphaRemaining() {
                 if (targetCoin) {
                     return targetCoin;
                 } else {
-                    console.log(targetCoin)
-                    console.log(res)
-                    console.log(json.data.list)
                     return null;
                 }
             } else {
@@ -937,7 +934,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.1");
+    logToPanel("UI创建完成 版本V1.0.2");
 
 }
 
