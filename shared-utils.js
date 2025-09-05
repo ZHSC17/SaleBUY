@@ -119,14 +119,17 @@ function roundTo6AndTrimZeros(num) {
     return rounded;
 }
 
-function roundTo2AndTrimZeros(num , count) {
+function roundTo2AndTrimZeros(num , count , needFixed = false) {
     const str = String(num);
     const dotIndex = str.indexOf('.');
     if (dotIndex === -1) return num; // 
     if(str.length - dotIndex - 1 < count)
         return num;
-    num = num.toFixed(window.tradeDecimal + 5)
-    str = String(num);
+    if(needFixed)
+    { 
+        num = num.toFixed(count + 5)
+        str = String(num);
+    }
     return Number(str.slice(0, dotIndex + count + 1)); // 截取小数点后N位
 }
 
@@ -272,7 +275,7 @@ async function BuyOrderCreate(count)
         return null;
     }
     let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
-    let buyAmount = window.MY_roundTo2AndTrimZeros(buyPrice * count, window.tradeDecimal);
+    let buyAmount = roundTo2AndTrimZeros(buyPrice * count, window.tradeDecimal , true);
     await window.MY_placeOrder({
         baseAsset: window.baseAsset,
         quoteAsset,
