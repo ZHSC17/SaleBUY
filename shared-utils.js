@@ -714,19 +714,6 @@ async function GetAlphaRemaining() {
 
 function CreateUI() {
 
-    
-    const versionLabel = document.createElement('label');
-    versionLabel.textContent = "V1.0.0";
-    versionLabel.style.position = 'fixed';
-    versionLabel.style.bottom = '20px';
-    versionLabel.style.right = '500px';
-    versionLabel.style.zIndex = 9999;
-    versionLabel.style.color = 'white';
-    versionLabel.style.backgroundColor = "green";
-    document.body.appendChild(versionLabel);
-
-
-
     MYcoinName = window.coinName
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
     window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
@@ -948,7 +935,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成");
+    logToPanel("UI创建完成 版本V1.0.0");
 
 }
 
