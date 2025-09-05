@@ -120,15 +120,15 @@ function roundTo6AndTrimZeros(num) {
 }
 
 function roundTo2AndTrimZeros(num , count , needFixed = false) {
-    const str = String(num);
+    let str = String(num);
     const dotIndex = str.indexOf('.');
     if (dotIndex === -1) return num; // 
     if(str.length - dotIndex - 1 < count)
         return num;
     if(needFixed)
     { 
-        num = num.toFixed(count + 5)
-        str = String(num);
+        const fixedNum = num.toFixed(count + 5)
+        str = String(fixedNum);
     }
     return Number(str.slice(0, dotIndex + count + 1)); // 截取小数点后N位
 }
