@@ -156,7 +156,6 @@ function logToPanel(message) {
         const timestamp = new Date().toLocaleTimeString();
         const logLine = `[${timestamp}] ${message}`;
         let lines = logPanel.textContent.split('\n');
-        console.log(message);
         // 添加新行
         lines.push(logLine);
 
@@ -605,12 +604,12 @@ async function SaleCoinFromWallet(showTip = true) {
         return 0;
     }
     const saleNumber = roundTo2AndTrimZeros(coinData.amount , 2);
-    if(saleNumber < 0.1)
+    if(coinData.valuation < 0.2)
     {
         if(showTip)
             logToPanel("已卖出:" + 0);
         else
-            logToPanel("账户alpha币数量小于0.1:" + saleNumber);
+            logToPanel("账户alpha币价值小于0.1:" + coinData.valuation);
         return 0;
     }
 
