@@ -122,8 +122,12 @@ function roundTo6AndTrimZeros(num) {
 function roundTo2AndTrimZeros(num , count) {
     const str = String(num);
     const dotIndex = str.indexOf('.');
-    if (dotIndex === -1) return num; // 没有小数点，直接返回
-    return Number(str.slice(0, dotIndex + count + 1)); // 截取小数点后两位
+    if (dotIndex === -1) return num; // 
+    if(str.length - dotIndex - 1 < count)
+        return num;
+    num = num.toFixed(window.tradeDecimal + 5)
+    str = String(num);
+    return Number(str.slice(0, dotIndex + count + 1)); // 截取小数点后N位
 }
 
 var logPanel;
@@ -268,7 +272,7 @@ async function BuyOrderCreate(count)
         return null;
     }
     let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
-    let buyAmount = window.MY_roundTo2AndTrimZeros((buyPrice * count).toFixed(window.tradeDecimal + 5) , window.tradeDecimal);
+    let buyAmount = window.MY_roundTo2AndTrimZeros(buyPrice * count, window.tradeDecimal);
     await window.MY_placeOrder({
         baseAsset: window.baseAsset,
         quoteAsset,
@@ -473,7 +477,7 @@ async function startTradingCycle(times = 10) {
     }
     isCircle = true;
     let i = 0
-    while (true) {
+    while (isCircle) {
         if(totalBuy > window.MY_MaxTradeNumber)  //交易数量达到
         {
             break;
@@ -934,7 +938,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.2");
+    logToPanel("UI创建完成 版本V1.0.3");
 
 }
 
