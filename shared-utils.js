@@ -112,7 +112,24 @@ function getVWAP(data, windowSize = 20) {
     return recent.reduce((sum, d) => sum + d.price * d.volume, 0) / totalVolume;
 }
 
-//计算斜率，判断是否单边
+//计算斜率，无成交量
+function calcSlope(data) {
+    if (data.length < 2) return 0;
+
+    const N = data.length;
+    const xMean = (N - 1) / 2;
+    const yMean = data.reduce((sum, d) => sum + d.price, 0) / N;
+
+    let num = 0, den = 0;
+    data.forEach((d, i) => {
+        num += (i - xMean) * (d.price - yMean);
+        den += (i - xMean) ** 2;
+    });
+
+    return num / den; // 斜率 a
+}
+
+//计算斜率，判断是否单边 , 有成交量
 function calcSlopeWithVolume(data) {
     if (data.length < 2) return 0;
 
@@ -194,6 +211,40 @@ function BasePriceByWeightedVolume2(direction = 'BUY') {
     }
 }
 
+function BasePriceByWeightedVolume3(direction = 'BUY') {
+    
+    let data = tradeHistory.slice(-10);
+    
+    const slope = calcSlope(data); // a
+    const lastIndex = data.length - 1;
+    const lastPrice = data[lastIndex].price;
+
+    let predictedPrice
+    if(slope < -0.0002)
+    {
+        if( direction === 'BUY')
+            predictedPrice = 0;
+        else
+            predictedPrice = lastPrice + slope * 5;
+    } 
+    else
+        predictedPrice = lastPrice + slope * 2;
+
+
+    let buyOffset = window.MY_BaseTradebuyOffsetInputNumber;
+    let sellOffset = window.MY_BaseTradeSaleOffsetInputNumber;
+
+    if (direction === 'BUY') {
+        return parseFloat((predictedPrice * buyOffset).toFixed(window.tradeDecimal));
+    } else {
+        return parseFloat((predictedPrice * sellOffset).toFixed(window.tradeDecimal));
+    }
+}
+
+
+
+
+
 function getBestPriceByWeightedVolume(direction = 'BUY') {
 
     const selectedValue = tradeTypeDropdown.value;
@@ -206,7 +257,10 @@ function getBestPriceByWeightedVolume(direction = 'BUY') {
     {
         return BasePriceByWeightedVolume2(direction);
     }
-
+    if(selectedValue == "趋势预测策略")
+    {
+        return BasePriceByWeightedVolume3(direction);
+    }
 }
 
 function roundTo6AndTrimZeros(num) {
@@ -371,6 +425,9 @@ async function BuyOrderCreate(count)
         return null;
     }
     let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
+    if(buyPrice <= 0.1)
+        return null;
+
     let buyAmount = roundTo2AndTrimZeros(buyPrice * count, window.tradeDecimal , true);
     await window.MY_placeOrder({
         baseAsset: window.baseAsset,
@@ -868,7 +925,7 @@ function CreateUI() {
     tradeTypeDropdown = document.createElement('select');
 
     // 添加选项
-    ['基础低波动策略', '自动偏移调整策略', '基础低波动策略2'].forEach((text, index) => {
+    ['基础低波动策略', '自动偏移调整策略', '趋势预测策略'].forEach((text, index) => {
         const option = document.createElement('option');
         option.value = text;
         option.textContent = text;
@@ -876,7 +933,7 @@ function CreateUI() {
     });
     tradeTypeDropdown.addEventListener('change', function(event) {
         const selectedValue = event.target.value;
-        if (selectedValue == '基础低波动策略' || selectedValue == '自动偏移调整策略') {
+        if (selectedValue == '基础低波动策略' || selectedValue == '自动偏移调整策略'|| selectedValue == '趋势预测策略') {
             BaseTradebuyOffsetLabel.style.display = 'block';
             BaseTradeSaleOffsetLabel.style.display = 'block';
         } else {
@@ -1037,7 +1094,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.4");
+    logToPanel("UI创建完成 版本V1.0.3");
 
 }
 
