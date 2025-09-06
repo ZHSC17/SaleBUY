@@ -1037,7 +1037,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.3");
+    logToPanel("UI创建完成 版本V1.0.4");
 
 }
 
