@@ -7,7 +7,7 @@
  * @returns {Promise<string|null>}
  */
 const quoteAsset = "USDT";
-const pollInterval = 700;
+const pollInterval = 500;
 
 let totalBuy = 0;
 let totalSale = 0;
@@ -22,36 +22,21 @@ var nowTradeNumberPanel;
 var nowTradeSaleNumber;
 var tradeTypeDropdown;
 
+let tradeNodes = [];
 
-function WebViewIsNormal()
-{
-     if (tradeHistory.length > 0) {
-        const latestTrade = tradeHistory[tradeHistory.length - 1];
-
-        // 把 HH:mm:ss 拼接到今天日期
-        const now = new Date();
-        const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-        const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
-
-        const diffSec = (now - tradeTime) / 1000;
-
-        if (diffSec > 15) {
-            return false;
-        }
-        else{
-            return true;
-        }
-    }
-    return false;
+function InitTradeNodes() {
+    // 只执行一次，用于缓存节点引用
+    tradeNodes = Array.from(
+        document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
+    );
 }
 
-
 function UpdateTradeHistoryData() {
-    const rows = Array.from(
-        document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
-    ).reverse();
+    if (tradeNodes.length === 0) {
+        InitTradeNodes();
+    }
 
-    const newData = rows.map(div => {
+    const newData = tradeNodes.slice().reverse().map(div => {
         const timeText   = div.children[0]?.textContent || ''; // 时间
         const priceText  = div.children[1]?.textContent || ''; // 价格
         const volumeText = div.children[2]?.textContent || ''; // 数量
@@ -82,6 +67,28 @@ function UpdateTradeHistoryData() {
     if (tradeHistory.length > 300) {
         tradeHistory = tradeHistory.slice(-300);
     }
+}
+
+function WebViewIsNormal()
+{
+     if (tradeHistory.length > 0) {
+        const latestTrade = tradeHistory[tradeHistory.length - 1];
+
+        // 把 HH:mm:ss 拼接到今天日期
+        const now = new Date();
+        const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+        const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
+
+        const diffSec = (now - tradeTime) / 1000;
+
+        if (diffSec > 15) {
+            return false;
+        }
+        else{
+            return true;
+        }
+    }
+    return false;
 }
 
 function timeToSeconds(timeStr) {
@@ -365,7 +372,6 @@ function logToPanel(message) {
         const timestamp = new Date().toLocaleTimeString();
         const logLine = `[${timestamp}] ${message}`;
         let lines = logPanel.textContent.split('\n');
-    console.log(message);
         // 添加新行
         lines.push(logLine);
 
@@ -381,7 +387,7 @@ function logToPanel(message) {
 // 发送订单请求
 async function placeOrder(payload) {
     let count = 0;
-    while(true && isCircle)
+    while(isCircle)
     {
         try {
             // 给 fetch 加超时
@@ -536,7 +542,7 @@ async function ClearTradeData() {
   // 轮询监听成交状态
 async function GetOrderHistory(orderid) {
     let count = 0;
-    while(true && isCircle)
+    while(isCircle)
     {
         try {
             const endTime = Date.now();
@@ -589,10 +595,10 @@ async function GetOrderHistory(orderid) {
 
 async function waitUntilFilled(keyword,index,price) {
     const start = Date.now();
-    while (true && isCircle) {
+    while (isCircle) {
         try{
-            window.MY_logToPanel(`第 ${index} 轮交易当前状态消息 价格${price} 等待成交`, );
             let orderState = await GetOrderHistory(orderid);
+            window.MY_logToPanel(`第 ${index} 轮交易当前状态消息 价格${price} 等待成交1`, );
             if(orderState != null && orderState.status == "FILLED")
             {
                 if(orderState.origQty == orderState.executedQty)
@@ -642,6 +648,8 @@ async function waitUntilFilled(keyword,index,price) {
         catch (err) {
             window.MY_logToPanel("⚠️ 请求异常: " + err.message);
         }
+        await new Promise(r => setTimeout(r, pollInterval));
+
     }
     CancelOrder();
     let result = {
@@ -711,7 +719,6 @@ async function startTradingCycle(times = 10) {
             window.MY_logToPanel(`停止自动交易`);
             break;
         }
-        await new Promise(r => setTimeout(r, 200));
 
         sellquantity = roundTo2AndTrimZeros(result.nowTradBuyQuantity * 0.9999 , 2);
         const nowTradSaleNumber = await SaleCoin(i , sellquantity)
@@ -793,15 +800,17 @@ async function SaleCoin(i , saleNumber) {
     let nowTradSaleNumber = 0;
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
-    if(sellPrice == null)  //页面卡死
+    if(sellPrice == null) //页面卡死
     {
         return null;
     }
 
-    result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
-    myquantity = saleNumber
+    let result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+    let myquantity = saleNumber
     if(result.state != null)
+    {
         nowTradSaleNumber += parseFloat(result.cumQuote);
+    }
     while(result.state == false && isCircle)
     {
         await new Promise(r => setTimeout(r, pollInterval));
@@ -814,7 +823,9 @@ async function SaleCoin(i , saleNumber) {
         }
         result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
         if(result.state != null)
+        {
             nowTradSaleNumber += parseFloat(result.cumQuote);
+        }
     }
     return (nowTradSaleNumber * 0.9999).toFixed(6);
 }
@@ -846,8 +857,8 @@ async function SaleCoinFromWallet(showTip = true) {
         return null;
     }
 
-    result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
-    myquantity = saleNumber
+    let result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+    let myquantity = saleNumber
     if(result.state != null)
         nowTradSaleNumber += parseFloat(result.cumQuote);
     while(result.state == false)
@@ -937,7 +948,7 @@ async function GetAlphaRemaining() {
     }
 }
 
-function CreateUI() {
+async function CreateUI() {
 
     MYcoinName = window.coinName
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995;
@@ -1229,8 +1240,8 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
                 saleCoin.style.display = "block";
                 logToPanel("交易数据读取完成");
             }
-            await new Promise(r => setTimeout(r, 10000));
         }
+        await new Promise(r => setTimeout(r, 10000));
     }
 }
 
