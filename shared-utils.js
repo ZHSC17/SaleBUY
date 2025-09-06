@@ -454,7 +454,7 @@ async function startTradingCycle(times = 10) {
         clearLock = false;
     }, 1000);
 
-    window.MY_PerTradeNumber = parseInt(localStorage.getItem('singleBuyQty'+ MYcoinName) || 500);
+    window.MY_PerTradeNumber =roundTo2AndTrimZeros( parseFloat(localStorage.getItem('singleBuyQty'+ MYcoinName) || 500),2);
     window.MY_MaxTradeNumber = parseInt(localStorage.getItem('totalTradeAmount'+ MYcoinName) || 65536);
 
    //sellquantity = window.MY_roundTo2AndTrimZeros(window.MY_PerTradeNumber * 0.9999 , 2);
@@ -485,7 +485,7 @@ async function startTradingCycle(times = 10) {
         {
             break;
         }
-        if(tradeHistory.length < 30)
+        if(tradeHistory.length < 30 && isCircle)
         {
             window.MY_logToPanel(`等待统计历史交易记录`);
             await new Promise(r => setTimeout(r, 10000));
@@ -496,7 +496,7 @@ async function startTradingCycle(times = 10) {
         window.MY_logToPanel(`\n=== 第 ${i} 轮交易开始 ===`);
 
         let result = await BuyCoin(i);
-        if(result == null)
+        if(result == null && isCircle)
             continue;
 
         if(!isCircle){
@@ -507,7 +507,7 @@ async function startTradingCycle(times = 10) {
 
         sellquantity = roundTo2AndTrimZeros(result.nowTradBuyQuantity * 0.9999 , 2);
         const nowTradSaleNumber = await SaleCoin(i , sellquantity)
-        if(nowTradSaleNumber == null)
+        if(nowTradSaleNumber == null&& isCircle)
             continue;
 
         if(!isCircle){
@@ -547,7 +547,7 @@ async function BuyCoin(i) {
         nowTradBuyNumber += parseFloat(result.cumQuote);
         nowTradBuyQuantity += parseFloat(result.executedQty);
     }
-    while(result.state == false || nowTradBuyNumber <= 1)    //只要买入在10U以上，部分成交，也直接卖出，不等待全部成交
+    while((result.state == false || nowTradBuyNumber <= 1) && isCircle)    //只要买入在10U以上，部分成交，也直接卖出，不等待全部成交
     {
         await new Promise(r => setTimeout(r, pollInterval));
         const executedQty = parseFloat(result.executedQty);
@@ -583,7 +583,7 @@ async function SaleCoin(i , saleNumber) {
     myquantity = saleNumber
     if(result.state != null)
         nowTradSaleNumber += parseFloat(result.cumQuote);
-    while(result.state == false)
+    while(result.state == false && isCircle)
     {
         await new Promise(r => setTimeout(r, pollInterval));
         const executedQty = parseFloat(result.executedQty);
@@ -941,7 +941,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.3");
+    logToPanel("UI创建完成 版本V1.0.4");
 
 }
 
