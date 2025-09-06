@@ -675,7 +675,7 @@ async function startTradingCycle(times = 10) {
         localStorage.setItem('totalSaleValue'+ MYcoinName , totalSale);
 
         nowTradeNumberPanel.textContent = "当前交易金额:" + totalBuy;
-        const  = totalSale - totalBuy;
+        const tradeLossNumber = totalSale - totalBuy;
         nowTradeSaleNumber.textContent = "当前亏损:" + tradeLossNumber;
 
         if(tradeLossNumber < -parseFloat( window.MY_MarTradeLossNumber))
@@ -904,7 +904,7 @@ function CreateUI() {
     TradWaitTimeInput.style.backgroundColor = "white";
     TradWaitTimeInput.onchange = () => {
         localStorage.setItem('TradWaitTime'+ MYcoinName, TradWaitTimeInput.value);
-        window.MY_TradWaitTime = TradWaitTimeInput.value
+        window.MY_TradWaitTime = TradWaitTimeInput.value;
     };
     TradWaitTimeLabel.appendChild(TradWaitTimeInput);
     document.body.appendChild(TradWaitTimeLabel);
