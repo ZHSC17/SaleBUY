@@ -675,10 +675,10 @@ async function startTradingCycle(times = 10) {
         localStorage.setItem('totalSaleValue'+ MYcoinName , totalSale);
 
         nowTradeNumberPanel.textContent = "当前交易金额:" + totalBuy;
-        const tradeLossNumber = totalSale - totalBuy;
+        const  = totalSale - totalBuy;
         nowTradeSaleNumber.textContent = "当前亏损:" + tradeLossNumber;
 
-        if(tradeLossNumber / totalBuy< -parseFloat( window.MY_MarTradeLossNumber))
+        if(tradeLossNumber < -parseFloat( window.MY_MarTradeLossNumber))
         {
             window.MY_logToPanel(`当前亏损已达上限`);
             break;
@@ -882,7 +882,7 @@ function CreateUI() {
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
     window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
 
-    window.MY_MarTradeLossNumber = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0002;
+    window.MY_MarTradeLossNumber = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 3;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
 
 
@@ -911,7 +911,7 @@ function CreateUI() {
 
 
     const MaxTradeFaileNumber = document.createElement('label');
-    MaxTradeFaileNumber.textContent = "最大亏损比例值:";
+    MaxTradeFaileNumber.textContent = "最大亏损值:";
     MaxTradeFaileNumber.style.position = 'fixed';
     MaxTradeFaileNumber.style.bottom = '20px';
     MaxTradeFaileNumber.style.right = '450px';
@@ -921,7 +921,7 @@ function CreateUI() {
 
     const MaxTradeFaileInput = document.createElement('input');
     MaxTradeFaileInput.type = 'number';
-    MaxTradeFaileInput.value = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0002; // 默认值
+    MaxTradeFaileInput.value = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 3; // 默认值
     MaxTradeFaileInput.style.width = '100px';
     MaxTradeFaileInput.style.marginLeft = '5px';
     MaxTradeFaileInput.style.backgroundColor = "white";
@@ -1151,7 +1151,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.5");
+    logToPanel("UI创建完成 版本V1.0.4");
 
 }
 
