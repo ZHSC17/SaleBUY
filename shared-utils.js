@@ -554,7 +554,7 @@ async function waitUntilFilled(keyword,index,price) {
                 }
             }
             await new Promise(r => setTimeout(r, pollInterval));
-            if(Date.now() - start > window.MY_TradWaitTime)
+            if(Date.now() - start > window.MY_TradWaitTime * 1000)
             {
                 const cancelResult = await window.MY_CancelOrder();
                 if(isCircle)
@@ -678,7 +678,7 @@ async function startTradingCycle(times = 10) {
         const tradeLossNumber = totalSale - totalBuy;
         nowTradeSaleNumber.textContent = "当前亏损:" + tradeLossNumber;
 
-        if(tradeLossNumber / totalBuy< -parseFloat( window.MY_MaxTradeFaileInput))
+        if(tradeLossNumber / totalBuy< -parseFloat( window.MY_MarTradeLossNumber))
         {
             window.MY_logToPanel(`当前亏损已达上限`);
             break;
@@ -882,7 +882,7 @@ function CreateUI() {
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
     window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
 
-    window.MY_MaxTradeFaileInput = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0001;
+    window.MY_MarTradeLossNumber = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0001;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
 
 
@@ -927,7 +927,7 @@ function CreateUI() {
     MaxTradeFaileInput.style.backgroundColor = "white";
     MaxTradeFaileInput.onchange = () => {
         localStorage.setItem('MaxTradeFaileInput'+ MYcoinName, MaxTradeFaileInput.value);
-        window.MY_MaxTradeFaileInput = MaxTradeFaileInput.value
+        window.MY_MarTradeLossNumber = MaxTradeFaileInput.value
     };
     MaxTradeFaileNumber.appendChild(MaxTradeFaileInput);
     document.body.appendChild(MaxTradeFaileNumber);
