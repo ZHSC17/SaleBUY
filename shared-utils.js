@@ -7,7 +7,6 @@
  * @returns {Promise<string|null>}
  */
 const quoteAsset = "USDT";
-const timeoutMs = 5000;
 const pollInterval = 700;
 
 let totalBuy = 0;
@@ -555,7 +554,7 @@ async function waitUntilFilled(keyword,index,price) {
                 }
             }
             await new Promise(r => setTimeout(r, pollInterval));
-            if(Date.now() - start > timeoutMs)
+            if(Date.now() - start > window.MY_TradWaitTime)
             {
                 const cancelResult = await window.MY_CancelOrder();
                 if(isCircle)
@@ -676,13 +675,19 @@ async function startTradingCycle(times = 10) {
         localStorage.setItem('totalSaleValue'+ MYcoinName , totalSale);
 
         nowTradeNumberPanel.textContent = "当前交易金额:" + totalBuy;
-        nowTradeSaleNumber.textContent = "当前亏损:" + (totalSale - totalBuy);
+        const tradeLossNumber = totalSale - totalBuy;
+        nowTradeSaleNumber.textContent = "当前亏损:" + tradeLossNumber;
+
+        if(tradeLossNumber < -parseFloat( window.MY_MaxTradeFaileInput))
+        {
+            window.MY_logToPanel(`当前亏损已达上限`);
+            break;
+        }   
     }
     isCircle = false;
     window.playBase64();
     window.MY_logToPanel(`已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
     await new Promise(r => setTimeout(r, 2000));
-    alert(`🎉 已完成交易 ${i} 次自动交易 总交易额 ${totalBuy}`);
 }
 
 async function BuyCoin(i) {
@@ -876,6 +881,58 @@ function CreateUI() {
     MYcoinName = window.coinName
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
     window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
+
+    window.MY_MaxTradeFaileInput = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0001;
+    window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
+
+
+    
+    const TradWaitTimeLabel = document.createElement('label');
+    TradWaitTimeLabel.textContent = "交易等待时间:";
+    TradWaitTimeLabel.style.position = 'fixed';
+    TradWaitTimeLabel.style.bottom = '50px';
+    TradWaitTimeLabel.style.right = '300px';
+    TradWaitTimeLabel.style.zIndex = 9999;
+    TradWaitTimeLabel.style.color = 'white';
+    TradWaitTimeLabel.style.backgroundColor = "green";
+
+    const TradWaitTimeInput = document.createElement('input');
+    TradWaitTimeInput.type = 'number';
+    TradWaitTimeInput.value = localStorage.getItem('TradWaitTime' + MYcoinName) || 5; // 默认值
+    TradWaitTimeInput.style.width = '100px';
+    TradWaitTimeInput.style.marginLeft = '5px';
+    TradWaitTimeInput.style.backgroundColor = "white";
+    TradWaitTimeInput.onchange = () => {
+        localStorage.setItem('TradWaitTime'+ MYcoinName, TradWaitTimeInput.value);
+        window.TradWaitTimeInput = TradWaitTimeInput.value
+    };
+    TradWaitTimeLabel.appendChild(TradWaitTimeInput);
+    document.body.appendChild(TradWaitTimeLabel);
+
+
+    const MaxTradeFaileNumber = document.createElement('label');
+    MaxTradeFaileNumber.textContent = "最大亏损比例值:";
+    MaxTradeFaileNumber.style.position = 'fixed';
+    MaxTradeFaileNumber.style.bottom = '20px';
+    MaxTradeFaileNumber.style.right = '300px';
+    MaxTradeFaileNumber.style.zIndex = 9999;
+    MaxTradeFaileNumber.style.color = 'white';
+    MaxTradeFaileNumber.style.backgroundColor = "green";
+
+    const MaxTradeFaileInput = document.createElement('input');
+    MaxTradeFaileInput.type = 'number';
+    MaxTradeFaileInput.value = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0001; // 默认值
+    MaxTradeFaileInput.style.width = '100px';
+    MaxTradeFaileInput.style.marginLeft = '5px';
+    MaxTradeFaileInput.style.backgroundColor = "white";
+    MaxTradeFaileInput.onchange = () => {
+        localStorage.setItem('MaxTradeFaileInput'+ MYcoinName, MaxTradeFaileInput.value);
+        window.MY_MaxTradeFaileInput = MaxTradeFaileInput.value
+    };
+    MaxTradeFaileNumber.appendChild(MaxTradeFaileInput);
+    document.body.appendChild(MaxTradeFaileNumber);
+
+
 
     const BaseTradebuyOffsetLabel = document.createElement('label');
     BaseTradebuyOffsetLabel.textContent = "买入偏移值:";
