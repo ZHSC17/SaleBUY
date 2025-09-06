@@ -611,7 +611,6 @@ async function waitUntilFilled(keyword,index,price) {
                     return result;
                 }
             }
-            await new Promise(r => setTimeout(r, pollInterval));
             if(Date.now() - start > window.MY_TradWaitTime * 1000)
             {
                 const cancelResult = await window.MY_CancelOrder();
@@ -647,6 +646,7 @@ async function waitUntilFilled(keyword,index,price) {
         catch (err) {
             window.MY_logToPanel("⚠️ 请求异常: " + err.message);
         }
+        window.MY_logToPanel(`第 ${index} 轮交易等待成交: ` + keyword);
         await new Promise(r => setTimeout(r, pollInterval));
 
     }
@@ -760,7 +760,7 @@ async function BuyCoin(i) {
     {
         return null;
     }
-    let result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+    let result = await waitUntilFilled("买单" , i ,buyPrice)
     let myquantity = window.MY_PerTradeNumber
     let nowTradBuyNumber = 0;
     let nowTradBuyQuantity = 0;
@@ -779,7 +779,7 @@ async function BuyCoin(i) {
         {
             break;
         }
-        result = await waitUntilFilled("Alpha限价买单已成交" , i ,buyPrice)
+        result = await waitUntilFilled("买单" , i ,buyPrice)
         if(result.state != null)
         {   nowTradBuyNumber += parseFloat(result.cumQuote);
             nowTradBuyQuantity += parseFloat(result.executedQty);
@@ -804,7 +804,7 @@ async function SaleCoin(i , saleNumber) {
         return null;
     }
 
-    let result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+    let result = await waitUntilFilled("卖单" , i ,sellPrice)
     let myquantity = saleNumber
     if(result.state != null)
     {
@@ -820,7 +820,7 @@ async function SaleCoin(i , saleNumber) {
         {
             return null;
         }
-        result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+        result = await waitUntilFilled("卖单" , i ,sellPrice)
         if(result.state != null)
         {
             nowTradSaleNumber += parseFloat(result.cumQuote);
@@ -1222,7 +1222,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.6");
+    logToPanel("UI创建完成 版本V1.0.5");
 
 }
 
