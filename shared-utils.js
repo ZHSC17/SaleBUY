@@ -678,7 +678,7 @@ async function startTradingCycle(times = 10) {
         const tradeLossNumber = totalSale - totalBuy;
         nowTradeSaleNumber.textContent = "当前亏损:" + tradeLossNumber;
 
-        if(tradeLossNumber < -parseFloat( window.MY_MaxTradeFaileInput))
+        if(tradeLossNumber / totalBuy< -parseFloat( window.MY_MaxTradeFaileInput))
         {
             window.MY_logToPanel(`当前亏损已达上限`);
             break;
@@ -891,7 +891,7 @@ function CreateUI() {
     TradWaitTimeLabel.textContent = "交易等待时间:";
     TradWaitTimeLabel.style.position = 'fixed';
     TradWaitTimeLabel.style.bottom = '50px';
-    TradWaitTimeLabel.style.right = '300px';
+    TradWaitTimeLabel.style.right = '450px';
     TradWaitTimeLabel.style.zIndex = 9999;
     TradWaitTimeLabel.style.color = 'white';
     TradWaitTimeLabel.style.backgroundColor = "green";
@@ -914,7 +914,7 @@ function CreateUI() {
     MaxTradeFaileNumber.textContent = "最大亏损比例值:";
     MaxTradeFaileNumber.style.position = 'fixed';
     MaxTradeFaileNumber.style.bottom = '20px';
-    MaxTradeFaileNumber.style.right = '300px';
+    MaxTradeFaileNumber.style.right = '450px';
     MaxTradeFaileNumber.style.zIndex = 9999;
     MaxTradeFaileNumber.style.color = 'white';
     MaxTradeFaileNumber.style.backgroundColor = "green";
@@ -1151,7 +1151,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.3");
+    logToPanel("UI创建完成 版本V1.0.4");
 
 }
 
