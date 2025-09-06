@@ -85,13 +85,16 @@ function UpdateTradeHistoryData() {
     }
 }
 
-function BasePriceByWeightedVolume(direction = 'BUY') {
-    data = tradeHistory.slice(-10);
-    if (data.length === 0) return null;
+function timeToSeconds(timeStr) {
+    // 格式: "HH:MM:SS"
+    const [h, m, s] = timeStr.split(":").map(Number);
+    return h * 3600 + m * 60 + s;
+}
 
-    // 计算成交量加权平均价 VWAP
-    const totalVolume = data.reduce((sum, d) => sum + d.volume, 0);
-    const vwap = data.reduce((sum, d) => sum + d.price * d.volume, 0) / totalVolume;
+
+//基础VWAP交易逻辑
+function BasePriceByWeightedVolume(direction = 'BUY') {
+    const vwap = getVWAP(tradeHistory , 10);
 
     if (direction === 'BUY') {
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
@@ -102,6 +105,95 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
     }
 }
 
+//获取VWAP
+function getVWAP(data, windowSize = 20) {
+    const recent = data.slice(-windowSize);
+    const totalVolume = recent.reduce((sum, d) => sum + d.volume, 0);
+    return recent.reduce((sum, d) => sum + d.price * d.volume, 0) / totalVolume;
+}
+
+//计算斜率，判断是否单边
+function calcSlopeWithVolume(data) {
+    if (data.length < 2) return 0;
+
+    const N = data.length;
+
+    // x 为时间索引
+    const xMean = (N - 1) / 2;
+
+    // 计算加权平均价格（按 volume）
+    const totalVolume = data.reduce((sum, d) => sum + d.volume, 0);
+    const yMean = data.reduce((sum, d) => sum + d.price * d.volume, 0) / totalVolume;
+
+    let num = 0, den = 0;
+
+    data.forEach((d, i) => {
+        const weight = d.volume;
+        const x = i;
+        const y = d.price;
+
+        num += weight * (x - xMean) * (y - yMean);
+        den += weight * (x - xMean) ** 2;
+    });
+
+    return num / den;
+}
+
+//归一化价格，然后计算斜率
+function calcNormalizedSlopeWithVolume(data) {
+    if (data.length < 2) return 0;
+
+    const prices = data.map(d => d.price);
+    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+    const normalizedData = data.map(d => ({
+        price: d.price / avgPrice,
+        volume: d.volume
+    }));
+
+    return calcSlopeWithVolume(normalizedData);
+}
+
+//VWAP交易逻辑 过滤单边 并自动调整偏移
+function BasePriceByWeightedVolume2(direction = 'BUY') {
+
+    let data = tradeHistory.slice(-20);
+
+    if (data.length === 0) return null;
+
+    // 计算 VWAP
+    const vwap =getVWAP(tradeHistory , 20);
+
+    // 计算斜率
+    const slope = calcNormalizedSlopeWithVolume(data);
+
+    // 动态调整因子
+    let buyOffset = window.MY_BaseTradebuyOffsetInputNumber;
+    let sellOffset = window.MY_BaseTradeSaleOffsetInputNumber;
+
+    const maxSlopeImpact = 0.005;
+    const slopeFactor = Math.max(-maxSlopeImpact, Math.min(maxSlopeImpact, slope));
+    
+    buyOffset *= 1 + slopeFactor;
+    sellOffset *= 1 + slopeFactor * 1.5;
+
+    if (slope > 0) {
+        // 上升趋势：买价抬高一些，卖价更乐观
+        buyOffset *= 1.001;  
+        sellOffset *= 1.002;
+    } else if (slope < 0) {
+        // 下跌趋势：买价更保守，卖价收缩
+        buyOffset *= 0.999;  
+        sellOffset *= 0.998;
+    }
+
+    if (direction === 'BUY') {
+        return (vwap * buyOffset).toFixed(window.tradeDecimal);
+    } else {
+        return (vwap * sellOffset).toFixed(window.tradeDecimal);
+    }
+}
+
 function getBestPriceByWeightedVolume(direction = 'BUY') {
 
     const selectedValue = tradeTypeDropdown.value;
@@ -109,6 +201,10 @@ function getBestPriceByWeightedVolume(direction = 'BUY') {
     if(selectedValue == "基础低波动策略")
     {
         return BasePriceByWeightedVolume(direction);
+    }
+    if(selectedValue == "自动偏移调整策略")
+    {
+        return BasePriceByWeightedVolume2(direction);
     }
 
 }
@@ -772,7 +868,7 @@ function CreateUI() {
     tradeTypeDropdown = document.createElement('select');
 
     // 添加选项
-    ['基础低波动策略', '基础低波动策略1', '基础低波动策略2'].forEach((text, index) => {
+    ['基础低波动策略', '自动偏移调整策略', '基础低波动策略2'].forEach((text, index) => {
         const option = document.createElement('option');
         option.value = text;
         option.textContent = text;
@@ -780,7 +876,7 @@ function CreateUI() {
     });
     tradeTypeDropdown.addEventListener('change', function(event) {
         const selectedValue = event.target.value;
-        if (selectedValue == '基础低波动策略') {
+        if (selectedValue == '基础低波动策略' || selectedValue == '自动偏移调整策略') {
             BaseTradebuyOffsetLabel.style.display = 'block';
             BaseTradeSaleOffsetLabel.style.display = 'block';
         } else {
@@ -941,7 +1037,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.4");
+    logToPanel("UI创建完成 版本V1.0.3");
 
 }
 
