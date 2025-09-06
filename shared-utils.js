@@ -127,10 +127,18 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
 
     if (direction === 'BUY') {
         if(isDowntrend(tradeHistory))
-            return 0;
+        {
+            logToPanel("下跌趋势，禁止买入！")
+             return 0;
+        } 
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
         return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
     } else {
+        if(isDowntrend(tradeHistory , 10 , 0.7 , 6))
+        {
+            logToPanel("下跌趋势，快速卖出！")
+             return (vwap * 0.99).toFixed(window.tradeDecimal);
+        } 
         // 卖出：参考 VWAP 并稍微往上抬
         return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
     }
