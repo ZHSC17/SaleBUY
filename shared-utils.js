@@ -904,7 +904,7 @@ function CreateUI() {
     TradWaitTimeInput.style.backgroundColor = "white";
     TradWaitTimeInput.onchange = () => {
         localStorage.setItem('TradWaitTime'+ MYcoinName, TradWaitTimeInput.value);
-        window.TradWaitTimeInput = TradWaitTimeInput.value
+        window.MY_TradWaitTime = TradWaitTimeInput.value
     };
     TradWaitTimeLabel.appendChild(TradWaitTimeInput);
     document.body.appendChild(TradWaitTimeLabel);
