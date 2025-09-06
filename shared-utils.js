@@ -129,7 +129,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
         if(isDowntrend(tradeHistory))
         {
             logToPanel("下跌趋势，禁止买入！")
-             return 0;
+            return null;
         } 
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
         return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
@@ -476,7 +476,7 @@ async function BuyOrderCreate(count)
         return null;
     }
     let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
-    if(buyPrice <= 0.1)
+    if(buyPrice == null)
         return null;
 
     let buyAmount = roundTo2AndTrimZeros(buyPrice * count, window.tradeDecimal , true);
@@ -773,11 +773,14 @@ async function BuyCoin(i) {
             nowTradBuyQuantity += parseFloat(result.executedQty);
         }
     }
-    let returnresult = {
+    if(nowTradBuyQuantity < 0.1)
+    {
+        return null;
+    }
+    return {
         nowTradBuyNumber,
         nowTradBuyQuantity
     }
-    return returnresult;
 }
 
 async function SaleCoin(i , saleNumber) {
