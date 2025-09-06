@@ -121,6 +121,14 @@ function isDowntrend(tradeHistory, N = 10, ratioThreshold = 0.65, streakThreshol
         }
     }
 
+    let salePrice = []
+    for (const d of recent) {
+        totalVolume += d.volume;
+        if (d.side === 'SELL') {
+            sellVolume += d.volume;
+        }
+    }
+
     // 满足任一条件 → 判定为下跌
     if (sellRatio > ratioThreshold || streak >= streakThreshold) {
         return true;
@@ -130,7 +138,20 @@ function isDowntrend(tradeHistory, N = 10, ratioThreshold = 0.65, streakThreshol
 
 //基础VWAP交易逻辑
 function BasePriceByWeightedVolume(direction = 'BUY') {
-    const vwap = getVWAP(tradeHistory , 5);
+    const vwap = getVWAP(tradeHistory , 10);
+
+    if (direction === 'BUY') {
+        // 买入：参考 VWAP 并稍微往下压，避免吃到高价
+        return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
+    } else {
+        // 卖出：参考 VWAP 并稍微往上抬
+        return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
+    }
+}
+
+//基础VWAP交易逻辑  加入趋势检测
+function BasePriceByWeightedVolumeStopLoss(direction = 'BUY') {
+    const vwap = getVWAP(tradeHistory , 10);
 
     if (direction === 'BUY') {
         if(isDowntrend(tradeHistory))
@@ -150,6 +171,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
         return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
     }
 }
+
 
 //获取VWAP
 function getVWAP(data, windowSize = 20) {
@@ -302,7 +324,6 @@ function BasePriceByWeightedVolume3(direction = 'BUY') {
 
 
 
-
 function getBestPriceByWeightedVolume(direction = 'BUY') {
 
     const selectedValue = tradeTypeDropdown.value;
@@ -318,6 +339,10 @@ function getBestPriceByWeightedVolume(direction = 'BUY') {
     if(selectedValue == "趋势预测策略")
     {
         return BasePriceByWeightedVolume3(direction);
+    }
+    if(selectedValue == "低波动下跌禁入策略")
+    {
+        return BasePriceByWeightedVolumeStopLoss(direction);
     }
 }
 
@@ -1053,7 +1078,7 @@ async function CreateUI() {
     tradeTypeDropdown = document.createElement('select');
 
     // 添加选项
-    ['基础低波动策略', '自动偏移调整策略', '趋势预测策略'].forEach((text, index) => {
+    ['基础低波动策略','低波动下跌禁入策略', '自动偏移调整策略', '趋势预测策略'].forEach((text, index) => {
         const option = document.createElement('option');
         option.value = text;
         option.textContent = text;
@@ -1061,7 +1086,7 @@ async function CreateUI() {
     });
     tradeTypeDropdown.addEventListener('change', function(event) {
         const selectedValue = event.target.value;
-        if (selectedValue == '基础低波动策略' || selectedValue == '自动偏移调整策略'|| selectedValue == '趋势预测策略') {
+        if (selectedValue == '基础低波动策略' ||selectedValue == '低波动下跌禁入策略' || selectedValue == '自动偏移调整策略'|| selectedValue == '趋势预测策略') {
             BaseTradebuyOffsetLabel.style.display = 'block';
             BaseTradeSaleOffsetLabel.style.display = 'block';
         } else {
@@ -1222,7 +1247,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.5");
+    logToPanel("UI创建完成 版本V1.0.6");
 
 }
 
