@@ -62,7 +62,7 @@ function UpdateTradeHistoryData() {
         // 主动方（根据颜色判断）
         const colorStyle = div.children[1]?.getAttribute('style') || '';
         let side = '';
-        if (colorStyle.includes('Buy')) side = 'BUY'; 
+        if (colorStyle.includes('Buy')) side = 'BUY';
         else if (colorStyle.includes('Sell')) side = 'SELL';
 
         return (isNaN(price) || isNaN(volume) || !timeText)
@@ -130,7 +130,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
         {
             logToPanel("下跌趋势，禁止买入！")
             return null;
-        } 
+        }
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
         return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
     } else {
@@ -138,7 +138,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
         {
             logToPanel("下跌趋势，快速卖出！")
              return (vwap * 0.99).toFixed(window.tradeDecimal);
-        } 
+        }
         // 卖出：参考 VWAP 并稍微往上抬
         return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
     }
@@ -229,17 +229,17 @@ function BasePriceByWeightedVolume2(direction = 'BUY') {
 
     const maxSlopeImpact = 0.005;
     const slopeFactor = Math.max(-maxSlopeImpact, Math.min(maxSlopeImpact, slope));
-    
+
     buyOffset *= 1 + slopeFactor;
     sellOffset *= 1 + slopeFactor * 1.5;
 
     if (slope > 0) {
         // 上升趋势：买价抬高一些，卖价更乐观
-        buyOffset *= 1.001;  
+        buyOffset *= 1.001;
         sellOffset *= 1.002;
     } else if (slope < 0) {
         // 下跌趋势：买价更保守，卖价收缩
-        buyOffset *= 0.999;  
+        buyOffset *= 0.999;
         sellOffset *= 0.998;
     }
 
@@ -251,10 +251,10 @@ function BasePriceByWeightedVolume2(direction = 'BUY') {
 }
 
 function BasePriceByWeightedVolume3(direction = 'BUY') {
-    
+
     let data = tradeHistory.slice(-20);
     if (data.length < 2) return null;
-    
+
     const N = data.length;
     const slope = calcSlope(data); // a
 
@@ -273,7 +273,7 @@ function BasePriceByWeightedVolume3(direction = 'BUY') {
             return 0;
         else
             stepsAhead = 5;
-    } 
+    }
     else
         stepsAhead = 2;
 
@@ -323,11 +323,11 @@ function roundTo6AndTrimZeros(num) {
 function roundTo2AndTrimZeros(num , count , needFixed = false) {
     let str = String(num);
     const dotIndex = str.indexOf('.');
-    if (dotIndex === -1) return num; // 
+    if (dotIndex === -1) return num; //
     if(str.length - dotIndex - 1 < count)
         return num;
     if(needFixed)
-    { 
+    {
         const fixedNum = num.toFixed(count + 5)
         str = String(fixedNum);
     }
@@ -365,6 +365,7 @@ function logToPanel(message) {
         const timestamp = new Date().toLocaleTimeString();
         const logLine = `[${timestamp}] ${message}`;
         let lines = logPanel.textContent.split('\n');
+    console.log(message);
         // 添加新行
         lines.push(logLine);
 
@@ -701,7 +702,10 @@ async function startTradingCycle(times = 10) {
 
         let result = await BuyCoin(i);
         if(result == null && isCircle)
+        {
+            await new Promise(r => setTimeout(r, 5000));
             continue;
+        }
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
@@ -712,7 +716,9 @@ async function startTradingCycle(times = 10) {
         sellquantity = roundTo2AndTrimZeros(result.nowTradBuyQuantity * 0.9999 , 2);
         const nowTradSaleNumber = await SaleCoin(i , sellquantity)
         if(nowTradSaleNumber == null&& isCircle)
+        {
             continue;
+        }
 
         if(!isCircle){
             window.MY_logToPanel(`停止自动交易`);
@@ -734,7 +740,7 @@ async function startTradingCycle(times = 10) {
         {
             window.MY_logToPanel(`当前亏损已达上限`);
             break;
-        }   
+        }
     }
     isCircle = false;
     window.playBase64();
@@ -788,7 +794,7 @@ async function SaleCoin(i , saleNumber) {
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
     if(sellPrice == null)  //页面卡死
-    {  
+    {
         return null;
     }
 
@@ -836,7 +842,7 @@ async function SaleCoinFromWallet(showTip = true) {
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
     if(sellPrice == null)  //页面卡死
-    {  
+    {
         return null;
     }
 
@@ -934,14 +940,14 @@ async function GetAlphaRemaining() {
 function CreateUI() {
 
     MYcoinName = window.coinName
-    window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
-    window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
+    window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995;
+    window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005;
 
     window.MY_MarTradeLossNumber = localStorage.getItem('MaxTradeFaileInput' + MYcoinName) || 3;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
 
 
-    
+
     const TradWaitTimeLabel = document.createElement('label');
     TradWaitTimeLabel.textContent = "交易等待时间:";
     TradWaitTimeLabel.style.position = 'fixed';
@@ -1053,7 +1059,7 @@ function CreateUI() {
             BaseTradeSaleOffsetLabel.style.display = 'none';
         }
     });
-   
+
 
 
      // 设置样式（可选）
@@ -1214,14 +1220,17 @@ var isLoadHistory = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
-        UpdateTradeHistoryData();
-        if(!isLoadHistory && tradeHistory.length > 30){
-            isLoadHistory = true;
-            btn.style.display = "block";
-            saleCoin.style.display = "block";
-            logToPanel("交易数据读取完成");
+        if(!isCircle)
+        {
+            UpdateTradeHistoryData();
+            if(!isLoadHistory && tradeHistory.length > 30){
+                isLoadHistory = true;
+                btn.style.display = "block";
+                saleCoin.style.display = "block";
+                logToPanel("交易数据读取完成");
+            }
+            await new Promise(r => setTimeout(r, 10000));
         }
-        await new Promise(r => setTimeout(r, 10000));
     }
 }
 
