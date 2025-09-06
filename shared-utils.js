@@ -62,7 +62,7 @@ function UpdateTradeHistoryData() {
         // 主动方（根据颜色判断）
         const colorStyle = div.children[1]?.getAttribute('style') || '';
         let side = '';
-        if (colorStyle.includes('Buy')) side = 'BUY';
+        if (colorStyle.includes('Buy')) side = 'BUY'; 
         else if (colorStyle.includes('Sell')) side = 'SELL';
 
         return (isNaN(price) || isNaN(volume) || !timeText)
@@ -90,12 +90,44 @@ function timeToSeconds(timeStr) {
     return h * 3600 + m * 60 + s;
 }
 
+function isDowntrend(tradeHistory, N = 10, ratioThreshold = 0.65, streakThreshold = 5) {
+    const recent = tradeHistory.slice(-N);
+    if (recent.length === 0) return false;
+
+    // 计算 SELL 成交量占比
+    let sellVolume = 0, totalVolume = 0;
+    for (const d of recent) {
+        totalVolume += d.volume;
+        if (d.side === 'SELL') {
+            sellVolume += d.volume;
+        }
+    }
+    const sellRatio = totalVolume > 0 ? sellVolume / totalVolume : 0;
+
+    // 检查连续卖单
+    let streak = 0;
+    for (let i = recent.length - 1; i >= 0; i--) {
+        if (recent[i].side === 'SELL') {
+            streak++;
+        } else {
+            break;
+        }
+    }
+
+    // 满足任一条件 → 判定为下跌
+    if (sellRatio > ratioThreshold || streak >= streakThreshold) {
+        return true;
+    }
+    return false;
+}
 
 //基础VWAP交易逻辑
 function BasePriceByWeightedVolume(direction = 'BUY') {
-    const vwap = getVWAP(tradeHistory , 10);
+    const vwap = getVWAP(tradeHistory , 5);
 
     if (direction === 'BUY') {
+        if(isDowntrend(tradeHistory))
+            return 0;
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
         return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
     } else {
@@ -212,22 +244,34 @@ function BasePriceByWeightedVolume2(direction = 'BUY') {
 
 function BasePriceByWeightedVolume3(direction = 'BUY') {
     
-    let data = tradeHistory.slice(-10);
+    let data = tradeHistory.slice(-20);
+    if (data.length < 2) return null;
     
+    const N = data.length;
     const slope = calcSlope(data); // a
-    const lastIndex = data.length - 1;
-    const lastPrice = data[lastIndex].price;
 
-    let predictedPrice
-    if(slope < -0.0002)
+
+
+
+    // 计算回归线截距 b
+    const xMean = (N - 1) / 2;
+    const yMean = data.reduce((sum, d) => sum + d.price, 0) / N;
+    const intercept = yMean - slope * xMean;
+
+    let stepsAhead = Math.min(5, Math.max(2, Math.floor(Math.abs(slope * 100000))));
+    if(slope < -0.0001)
     {
         if( direction === 'BUY')
-            predictedPrice = 0;
+            return 0;
         else
-            predictedPrice = lastPrice + slope * 5;
+            stepsAhead = 5;
     } 
     else
-        predictedPrice = lastPrice + slope * 2;
+        stepsAhead = 2;
+
+    const futureX = N - 1 + stepsAhead;
+    window.MY_TradWaitTime = stepsAhead  + 1;
+    const predictedPrice = slope * futureX + intercept;
 
 
     let buyOffset = window.MY_BaseTradebuyOffsetInputNumber;
@@ -882,7 +926,7 @@ function CreateUI() {
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
     window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
 
-    window.MY_MarTradeLossNumber = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 3;
+    window.MY_MarTradeLossNumber = localStorage.getItem('MaxTradeFaileInput' + MYcoinName) || 3;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
 
 
@@ -921,7 +965,7 @@ function CreateUI() {
 
     const MaxTradeFaileInput = document.createElement('input');
     MaxTradeFaileInput.type = 'number';
-    MaxTradeFaileInput.value = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 3; // 默认值
+    MaxTradeFaileInput.value = localStorage.getItem('MaxTradeFaileInput' + MYcoinName) || 3; // 默认值
     MaxTradeFaileInput.style.width = '100px';
     MaxTradeFaileInput.style.marginLeft = '5px';
     MaxTradeFaileInput.style.backgroundColor = "white";
@@ -1151,7 +1195,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.4");
+    logToPanel("UI创建完成 版本V1.0.5");
 
 }
 
