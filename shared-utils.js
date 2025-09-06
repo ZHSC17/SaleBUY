@@ -598,7 +598,6 @@ async function waitUntilFilled(keyword,index,price) {
     while (isCircle) {
         try{
             let orderState = await GetOrderHistory(orderid);
-            window.MY_logToPanel(`第 ${index} 轮交易当前状态消息 价格${price} 等待成交1`, );
             if(orderState != null && orderState.status == "FILLED")
             {
                 if(orderState.origQty == orderState.executedQty)
@@ -1223,7 +1222,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.5");
+    logToPanel("UI创建完成 版本V1.0.6");
 
 }
 
