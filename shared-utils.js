@@ -882,7 +882,7 @@ function CreateUI() {
     window.MY_BaseTradebuyOffsetInputNumber = localStorage.getItem('BaseTradebuyOffsetValue' + MYcoinName) || 0.99995; 
     window.MY_BaseTradeSaleOffsetInputNumber = localStorage.getItem('BaseTradeSaleOffsetValue'+ MYcoinName) || 1.00005; 
 
-    window.MY_MarTradeLossNumber = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0001;
+    window.MY_MarTradeLossNumber = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0002;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
 
 
@@ -921,7 +921,7 @@ function CreateUI() {
 
     const MaxTradeFaileInput = document.createElement('input');
     MaxTradeFaileInput.type = 'number';
-    MaxTradeFaileInput.value = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0001; // 默认值
+    MaxTradeFaileInput.value = localStorage.getItem('BMaxTradeFaileInput' + MYcoinName) || 0.0002; // 默认值
     MaxTradeFaileInput.style.width = '100px';
     MaxTradeFaileInput.style.marginLeft = '5px';
     MaxTradeFaileInput.style.backgroundColor = "white";
@@ -1151,7 +1151,7 @@ function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
 
-    logToPanel("UI创建完成 版本V1.0.4");
+    logToPanel("UI创建完成 版本V1.0.5");
 
 }
 
