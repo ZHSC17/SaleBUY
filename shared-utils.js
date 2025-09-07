@@ -97,44 +97,127 @@ function timeToSeconds(timeStr) {
     return h * 3600 + m * 60 + s;
 }
 
-function isDowntrend(tradeHistory, N = 10, ratioThreshold = 0.65, streakThreshold = 5) {
-    const recent = tradeHistory.slice(-N);
-    if (recent.length === 0) return false;
+//判断下跌趋势
+function isDowntrend(tradeHistory, count = 5) {
+    if (tradeHistory.length === 0) return false;
 
-    // 计算 SELL 成交量占比
-    let sellVolume = 0, totalVolume = 0;
-    for (const d of recent) {
-        totalVolume += d.volume;
-        if (d.side === 'SELL') {
-            sellVolume += d.volume;
+    // 筛选最近的 count 笔买单和卖单
+    let buys  = tradeHistory.filter(d => d.side === 'BUY');
+    if(buys.length > count){
+        buys = buys.slice(-count);
+    }
+    let sells = tradeHistory.filter(d => d.side === 'SELL');
+    if(sells.length > count){
+        sells = sells.slice(-count);
+    }
+
+    if (buys.length < count || sells.length < count) {
+        return false; // 数据不足，无法判断
+    }
+
+
+
+
+    // 简单线性回归计算斜率
+    function calcSlope(points) {
+        const n = points.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        for (let i = 0; i < n; i++) {
+            sumX  += i;
+            sumY  += points[i].price;
+            sumXY += i * points[i].price;
+            sumXX += i * i;
         }
-    }
-    const sellRatio = totalVolume > 0 ? sellVolume / totalVolume : 0;
-
-    // 检查连续卖单
-    let streak = 0;
-    for (let i = recent.length - 1; i >= 0; i--) {
-        if (recent[i].side === 'SELL') {
-            streak++;
-        } else {
-            break;
-        }
+        const denom = n * sumXX - sumX * sumX;
+        if (denom === 0) return 0;
+        return (n * sumXY - sumX * sumY) / denom;
     }
 
-    let salePrice = []
-    for (const d of recent) {
-        totalVolume += d.volume;
-        if (d.side === 'SELL') {
-            sellVolume += d.volume;
-        }
-    }
-
-    // 满足任一条件 → 判定为下跌
-    if (sellRatio > ratioThreshold || streak >= streakThreshold) {
-        return true;
-    }
-    return false;
+    const buySlope  = calcSlope(buys);
+    const sellSlope = calcSlope(sells);
+    logToPanel("斜率:" + buySlope + "---" +sellSlope);
+    return buySlope < -0.000001 && sellSlope < -0.000001;
 }
+
+
+// function isDowntrend(tradeHistory, N = 10, ratioThreshold = 0.65, streakThreshold = 5) {
+//     const recent = tradeHistory.slice(-N);
+//     if (recent.length === 0) return false;
+
+//     // 计算 SELL 成交量占比
+//     let sellVolume = 0, totalVolume = 0;
+//     for (const d of recent) {
+//         totalVolume += d.volume;
+//         if (d.side === 'SELL') {
+//             sellVolume += d.volume;
+//         }
+//     }
+//     const sellRatio = totalVolume > 0 ? sellVolume / totalVolume : 0;
+
+//     // 检查连续卖单
+//     let streak = 0;
+//     for (let i = recent.length - 1; i >= 0; i--) {
+//         if (recent[i].side === 'SELL') {
+//             streak++;
+//         } else {
+//             break;
+//         }
+//     }
+
+//     let salePrice = []
+//     for (const d of recent) {
+//         totalVolume += d.volume;
+//         if (d.side === 'SELL') {
+//             sellVolume += d.volume;
+//         }
+//     }
+
+//     // 满足任一条件 → 判定为下跌
+//     if (sellRatio > ratioThreshold || streak >= streakThreshold) {
+//         return true;
+//     }
+//     return false;
+// }
+
+
+//去掉数据噪点
+function removeOutliers(prices, k = 2) {
+    const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const variance = prices.reduce((a, b) => a + (b - mean) ** 2, 0) / prices.length;
+    const std = Math.sqrt(variance);
+
+    return prices.filter(p => Math.abs(p - mean) <= k * std);
+}
+
+//稳定币交易策略
+function StableCoinPriceGet(direction = 'BUY') {
+    if (direction === 'BUY') {
+        let sells = tradeHistory.filter(d => d.side === 'SELL');
+        if(sells.length > 10){
+            sells = sells.slice(-10);
+        }
+
+        let sellPrices = sells.map(d => d.price);
+        sellPrices = removeOutliers(sellPrices, 2);
+        let sellMin = Math.min(...sellPrices);
+
+        // 买入：参考 VWAP 并稍微往下压，避免吃到高价
+        return (sellMin * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
+    } else {
+        let buys  = tradeHistory.filter(d => d.side === 'BUY');
+        if(buys.length > 10){
+            buys = buys.slice(-10);
+        }
+        let buyPrices = buys.map(d => d.price);
+        buyPrices = removeOutliers(buyPrices, 2);  // 去掉离群点
+        let buyMax = Math.max(...buyPrices);
+
+        // 卖出：参考 VWAP 并稍微往上抬
+        return (buyMax * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
+    }
+}
+
+
 
 //基础VWAP交易逻辑
 function BasePriceByWeightedVolume(direction = 'BUY') {
@@ -151,7 +234,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
 
 //基础VWAP交易逻辑  加入趋势检测
 function BasePriceByWeightedVolumeStopLoss(direction = 'BUY') {
-    const vwap = getVWAP(tradeHistory , 10);
+    const vwap = getVWAP(tradeHistory , 30);
 
     if (direction === 'BUY') {
         if(isDowntrend(tradeHistory))
@@ -194,7 +277,7 @@ function calcSlope(data) {
         den += (i - xMean) ** 2;
     });
 
-    return num / den; // 斜率 a
+    return num / den;
 }
 
 //计算斜率，判断是否单边 , 有成交量
@@ -279,6 +362,8 @@ function BasePriceByWeightedVolume2(direction = 'BUY') {
     }
 }
 
+
+//斜率预测
 function BasePriceByWeightedVolume3(direction = 'BUY') {
 
     let data = tradeHistory.slice(-20);
@@ -296,15 +381,20 @@ function BasePriceByWeightedVolume3(direction = 'BUY') {
     const intercept = yMean - slope * xMean;
 
     let stepsAhead = Math.min(5, Math.max(2, Math.floor(Math.abs(slope * 100000))));
-    if(slope < -0.0001)
+    if(slope < -0.00002)
     {
         if( direction === 'BUY')
-            return 0;
+            return null;
         else
             stepsAhead = 5;
     }
-    else
+    else  if(slope > 0.00002)
+    {
+         stepsAhead = 5;
+    }
+    else{
         stepsAhead = 2;
+    }
 
     const futureX = N - 1 + stepsAhead;
     window.MY_TradWaitTime = stepsAhead  + 1;
@@ -344,6 +434,11 @@ function getBestPriceByWeightedVolume(direction = 'BUY') {
     {
         return BasePriceByWeightedVolumeStopLoss(direction);
     }
+    if(selectedValue == "稳定币交易策略")
+    {
+        return StableCoinPriceGet(direction);
+    }
+
 }
 
 function roundTo6AndTrimZeros(num) {
@@ -1078,7 +1173,7 @@ async function CreateUI() {
     tradeTypeDropdown = document.createElement('select');
 
     // 添加选项
-    ['基础低波动策略','低波动下跌禁入策略', '自动偏移调整策略', '趋势预测策略'].forEach((text, index) => {
+    ['基础低波动策略','稳定币交易策略','低波动下跌禁入策略', '自动偏移调整策略', '趋势预测策略'].forEach((text, index) => {
         const option = document.createElement('option');
         option.value = text;
         option.textContent = text;
@@ -1086,7 +1181,7 @@ async function CreateUI() {
     });
     tradeTypeDropdown.addEventListener('change', function(event) {
         const selectedValue = event.target.value;
-        if (selectedValue == '基础低波动策略' ||selectedValue == '低波动下跌禁入策略' || selectedValue == '自动偏移调整策略'|| selectedValue == '趋势预测策略') {
+        if (selectedValue == '基础低波动策略' ||selectedValue == '低波动下跌禁入策略' || selectedValue == '自动偏移调整策略'|| selectedValue == '趋势预测策略'|| selectedValue == '稳定币交易策略') {
             BaseTradebuyOffsetLabel.style.display = 'block';
             BaseTradeSaleOffsetLabel.style.display = 'block';
         } else {
@@ -1246,8 +1341,8 @@ async function CreateUI() {
     document.body.appendChild(saleCoin);
 
     LoopUpdateHistoryData(btn,saleCoin);
-
-    logToPanel("UI创建完成 版本V1.0.6");
+  //  initTradeChart();
+    logToPanel("UI创建完成 版本V1.0.5");
 
 }
 
@@ -1268,6 +1363,82 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
         await new Promise(r => setTimeout(r, 10000));
     }
 }
+
+
+let chart = null;
+
+function initTradeChart() {
+        /////////////////////////
+        // 创建图表容器
+        /////////////////////////
+        const container = document.createElement("div");
+        container.style.position = "fixed";
+        container.style.right = "20px";
+        container.style.bottom = "20px";
+        container.style.width = "500px";
+        container.style.height = "300px";
+        container.style.background = "rgba(0,0,0,0.8)";
+        container.style.zIndex = "999999";
+        container.style.padding = "10px";
+        container.style.borderRadius = "10px";
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 480;
+        canvas.height = 280;
+
+        container.appendChild(canvas);
+        document.body.appendChild(container);
+
+        /////////////////////////
+        // 初始化 Chart.js
+        /////////////////////////
+        const ctx = canvas.getContext("2d");
+        const chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: [], // 时间
+                datasets: [
+                    {
+                        label: "Price",
+                        data: [],
+                        borderColor: "rgb(75, 192, 192)",
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.2,
+                    },
+                ],
+            },
+            options: {
+                responsive: false,
+                animation: false,
+                scales: {
+                    x: { ticks: { color: "white" } },
+                    y: { ticks: { color: "white" } },
+                },
+                plugins: {
+                    legend: { labels: { color: "white" } },
+                },
+            },
+        });
+
+        /////////////////////////
+        // 定时更新函数
+        /////////////////////////
+        function updateChart() {
+            if (!Array.isArray(tradeHistory) || tradeHistory.length === 0) return;
+
+            // 取最近 50 笔交易
+            const recent = tradeHistory.slice(-50);
+
+            chart.data.labels = recent.map((t) => t.time);
+            chart.data.datasets[0].data = recent.map((t) => t.price);
+
+            chart.update();
+        }
+
+        setInterval(updateChart, 1000);
+    }
 
 
 // 暴露为全局函数（油猴 @require 加载时默认执行并挂载到 window），
