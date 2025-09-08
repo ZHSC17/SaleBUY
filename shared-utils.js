@@ -974,7 +974,7 @@ async function SaleCoinFromWallet(showTip = true) {
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
 
-    let result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+    let result = await waitUntilFilled("Alpha限价卖单已成交" , 0 ,sellPrice)
     let myquantity = saleNumber
     if(result.state != null)
         nowTradSaleNumber += parseFloat(result.cumQuote);
@@ -988,7 +988,7 @@ async function SaleCoinFromWallet(showTip = true) {
         {
             return null;
         }
-        result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
+        result = await waitUntilFilled("Alpha限价卖单已成交" , 0 ,sellPrice)
         if(result.state != null)
             nowTradSaleNumber += parseFloat(result.cumQuote);
     }
@@ -1073,6 +1073,41 @@ async function CreateUI() {
 
     window.MY_MarTradeLossNumber = localStorage.getItem('MaxTradeFaileInput' + MYcoinName) || 3;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
+    window.MY_AutoRefreshWeb = localStorage.getItem('AutoRefreshWeb' + MYcoinName) || false;
+
+
+
+    // 创建 label 元素
+    const AutoRefreshLabel = document.createElement('label');
+    AutoRefreshLabel.textContent = '卡死自动刷新网页';
+    AutoRefreshLabel.style.position = 'fixed';
+    AutoRefreshLabel.style.bottom = '80px';
+    AutoRefreshLabel.style.right = '450px';
+    AutoRefreshLabel.style.zIndex = 9999;
+    AutoRefreshLabel.style.color = 'white';
+    AutoRefreshLabel.style.backgroundColor = "green";
+
+    // 创建 toggle（checkbox）
+    const AutoRefreshToggle = document.createElement('input');
+    AutoRefreshToggle.type = 'checkbox';
+    AutoRefreshToggle.checked = localStorage.getItem('AutoRefreshWeb' + MYcoinName) === 'false'; // 从 localStorage 读取
+    AutoRefreshToggle.style.marginLeft = '8px';
+
+    // 添加事件监听器
+    AutoRefreshToggle.addEventListener('change', () => {
+        const isEnabled = AutoRefreshToggle.checked;
+        localStorage.setItem('AutoRefreshWeb' + MYcoinName, isEnabled);
+        window.MY_AutoRefreshWeb = isEnabled;
+        if(isEnabled)
+            logToPanel("启用卡死自动刷新网页并自动开始交易")
+        else
+            logToPanel("关闭卡死自动刷新网页并自动开始交易")
+    });
+
+    // 插入 label + toggle 到容器
+    AutoRefreshLabel.appendChild(AutoRefreshToggle);
+    document.body.appendChild(AutoRefreshLabel);
+
 
 
 
@@ -1354,6 +1389,10 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             btn.style.display = "block";
             saleCoin.style.display = "block";
             logToPanel("交易数据读取完成");
+            if(Boolean(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
+            {
+                startTradingCycle();
+            }
         }
         await new Promise(r => setTimeout(r, 1000));
 
@@ -1362,6 +1401,11 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
         {
             StopTradingCycle();
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
+            if(Boolean(window.MY_AutoRefreshWeb))
+            {
+                localStorage.setItem('AutoStartBuySale'+ MYcoinName, true);
+                location.reload();
+            }
         }
     }
 }
