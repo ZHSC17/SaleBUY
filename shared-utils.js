@@ -23,50 +23,74 @@ var nowTradeSaleNumber;
 var tradeTypeDropdown;
 
 let tradeNodes = [];
+let trade3Nodes = [];
+let isFirstFetch = true;
 
 function InitTradeNodes() {
-    // 只执行一次，用于缓存节点引用
+    // 初始抓取全部 trade 节点（只执行一次）
     tradeNodes = Array.from(
         document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
     );
+    trade3Nodes = tradeNodes.slice(-3); 
+}
+
+function ParseTradeNode(div) {
+    const timeText   = div.children[0]?.textContent || ''; // 时间
+    const priceText  = div.children[1]?.textContent || ''; // 价格
+    const volumeText = div.children[2]?.textContent || ''; // 数量
+
+    const price  = parseFloat(priceText.replace(/,/g, ''));
+    const volume = parseFloat(volumeText.replace(/,/g, ''));
+
+    // 主动方（通过颜色判断）
+    const colorStyle = div.children[1]?.getAttribute('style') || '';
+    let side = '';
+    if (colorStyle.includes('Buy')) side = 'BUY';
+    else if (colorStyle.includes('Sell')) side = 'SELL';
+
+    return (isNaN(price) || isNaN(volume) || !timeText)
+        ? null
+        : { time: timeText, price, volume, side };
 }
 
 function UpdateTradeHistoryData() {
-    if (tradeNodes.length === 0) {
+    if (isFirstFetch) {
         InitTradeNodes();
-    }
+        if(tradeNodes.length == 0 )return;
+        const newData = tradeNodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
 
-    const newData = tradeNodes.slice().reverse().map(div => {
-        const timeText   = div.children[0]?.textContent || ''; // 时间
-        const priceText  = div.children[1]?.textContent || ''; // 价格
-        const volumeText = div.children[2]?.textContent || ''; // 数量
+        for (const trade of newData) {
+            const exists = tradeHistory.some(
+                t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
+            );
+            if (!exists) {
+                tradeHistory.push(trade);
+            }
+        }
 
-        const price  = parseFloat(priceText.replace(/,/g, ''));
-        const volume = parseFloat(volumeText.replace(/,/g, ''));
+        if (tradeHistory.length > 50) {
+            tradeHistory = tradeHistory.slice(-50);
+        }
+        isFirstFetch = false; 
+        tradeNodes = null;
+    } 
+    else
+    {
+        const newData = trade3Nodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
+        for (const trade of newData) {
+            const exists = tradeHistory.some(
+                t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
+            );
+            if (!exists) {
+                tradeHistory.push(trade);
+            }
+        }
 
-        // 主动方（根据颜色判断）
-        const colorStyle = div.children[1]?.getAttribute('style') || '';
-        let side = '';
-        if (colorStyle.includes('Buy')) side = 'BUY';
-        else if (colorStyle.includes('Sell')) side = 'SELL';
-
-        return (isNaN(price) || isNaN(volume) || !timeText)
-            ? null
-            : { time: timeText, price, volume, side };
-    }).filter(item => item !== null);
-
-    for (const trade of newData) {
-        const exists = tradeHistory.some(
-            t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
-        );
-        if (!exists) {
-            tradeHistory.push(trade);
+        if (tradeHistory.length > 50) {
+            tradeHistory = tradeHistory.slice(-50);
         }
     }
 
-    if (tradeHistory.length > 300) {
-        tradeHistory = tradeHistory.slice(-300);
-    }
 }
 
 function WebViewIsNormal()
@@ -81,7 +105,7 @@ function WebViewIsNormal()
 
         const diffSec = (now - tradeTime) / 1000;
 
-        if (diffSec > 15) {
+        if (diffSec > 7) {
             return false;
         }
         else{
@@ -595,13 +619,6 @@ async function CancelOrder() {
 
 async function BuyOrderCreate(count)
 {
-    UpdateTradeHistoryData();
-    if(!WebViewIsNormal)
-    {
-        window.playBase64();
-        window.MY_logToPanel(`交易数据错误！请检查！`);
-        return null;
-    }
     let buyPrice = await window.MY_getBestPriceByWeightedVolume("BUY");
     if(buyPrice == null)
         return null;
@@ -621,13 +638,6 @@ async function BuyOrderCreate(count)
 }
 async function SellOrderCreate(count)
 {
-    UpdateTradeHistoryData();
-    if(!WebViewIsNormal)
-    {
-        window.playBase64();
-        window.MY_logToPanel(`交易数据错误！请检查！`);
-        return null;
-    }
     const sellPrice = await window.MY_getBestPriceByWeightedVolume("SELL");
     await window.MY_placeOrder({
         baseAsset: window.baseAsset,
@@ -1350,17 +1360,21 @@ var isLoadHistory = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
-        if(!isCircle)
-        {
-            UpdateTradeHistoryData();
-            if(!isLoadHistory && tradeHistory.length > 30){
-                isLoadHistory = true;
-                btn.style.display = "block";
-                saleCoin.style.display = "block";
-                logToPanel("交易数据读取完成");
-            }
+        UpdateTradeHistoryData();
+        if(!isLoadHistory && tradeHistory.length > 30){
+            isLoadHistory = true;
+            btn.style.display = "block";
+            saleCoin.style.display = "block";
+            logToPanel("交易数据读取完成");
         }
-        await new Promise(r => setTimeout(r, 10000));
+        await new Promise(r => setTimeout(r, 1000));
+
+        
+        if(!WebViewIsNormal)
+        {
+            StopTradingCycle();
+            window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
+        }
     }
 }
 
