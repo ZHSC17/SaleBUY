@@ -929,10 +929,6 @@ async function SaleCoin(i , saleNumber) {
     let nowTradSaleNumber = 0;
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
-    if(sellPrice == null) //页面卡死
-    {
-        return null;
-    }
 
     let result = await waitUntilFilled("卖单" , i ,sellPrice)
     let myquantity = saleNumber
@@ -946,10 +942,6 @@ async function SaleCoin(i , saleNumber) {
         const executedQty = parseFloat(result.executedQty);
         myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
         sellPrice = await window.MY_SellOrderCreate(myquantity);
-        if(sellPrice == null)
-        {
-            return null;
-        }
         result = await waitUntilFilled("卖单" , i ,sellPrice)
         if(result.state != null)
         {
@@ -981,10 +973,6 @@ async function SaleCoinFromWallet(showTip = true) {
     }
 
     let sellPrice = await window.MY_SellOrderCreate(saleNumber);
-    if(sellPrice == null)  //页面卡死
-    {
-        return null;
-    }
 
     let result = await waitUntilFilled("Alpha限价卖单已成交" , i ,sellPrice)
     let myquantity = saleNumber
@@ -1352,7 +1340,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.5");
+    logToPanel("UI创建完成 版本V1.0.6");
 
 }
 
