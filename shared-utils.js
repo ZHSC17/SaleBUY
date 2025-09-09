@@ -1404,7 +1404,8 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
         
         if(isLoadHistory && !WebViewIsNormal())
         {
-            StopTradingCycle();
+            if(isCircle)
+                StopTradingCycle();
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
             if(JSON.parse(window.MY_AutoRefreshWeb))
             {
