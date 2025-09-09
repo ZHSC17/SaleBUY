@@ -217,27 +217,26 @@ function removeOutliers(prices, k = 2) {
 function StableCoinPriceGet(direction = 'BUY') {
     if (direction === 'BUY') {
         let sells = tradeHistory.filter(d => d.side === 'SELL');
-        if(sells.length > 10){
-            sells = sells.slice(-10);
+        if(sells.length > 5){
+            sells = sells.slice(-5);
         }
-
         let sellPrices = sells.map(d => d.price);
         sellPrices = removeOutliers(sellPrices, 2);
-        let sellMin = Math.min(...sellPrices);
+        const vwap = getVWAP(sellPrices , sellPrices.length);
 
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
-        return (sellMin * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
+        return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
     } else {
         let buys  = tradeHistory.filter(d => d.side === 'BUY');
-        if(buys.length > 10){
-            buys = buys.slice(-10);
+        if(buys.length > 5){
+            buys = buys.slice(-5);
         }
         let buyPrices = buys.map(d => d.price);
         buyPrices = removeOutliers(buyPrices, 2);  // 去掉离群点
-        let buyMax = Math.max(...buyPrices);
+        const vwap = getVWAP(sellPrices , sellPrices.length);
 
         // 卖出：参考 VWAP 并稍微往上抬
-        return (buyMax * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
+        return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
     }
 }
 
@@ -1073,7 +1072,7 @@ async function CreateUI() {
 
     window.MY_MarTradeLossNumber = localStorage.getItem('MaxTradeFaileInput' + MYcoinName) || 3;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
-    
+
     let val = localStorage.getItem('AutoRefreshWeb' + MYcoinName);
     window.MY_AutoRefreshWeb = val ? JSON.parse(val) : false;
 
@@ -1380,7 +1379,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.6");
+    logToPanel("UI创建完成 版本V1.0.7");
 
 }
 
@@ -1407,7 +1406,7 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
         {
             StopTradingCycle();
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
-            if(JSON.parselean(window.MY_AutoRefreshWeb))
+            if(JSON.parse(window.MY_AutoRefreshWeb))
             {
                 localStorage.setItem('AutoStartBuySale'+ MYcoinName, true);
                 await new Promise(r => setTimeout(r, 1000));
