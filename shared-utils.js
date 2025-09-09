@@ -100,11 +100,12 @@ function WebViewIsNormal()
 
         // 把 HH:mm:ss 拼接到今天日期
         const now = new Date();
-        const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+        const todayStr = now.getFullYear() + '-'
+               + String(now.getMonth() + 1).padStart(2, '0') + '-'
+               + String(now.getDate()).padStart(2, '0');
         const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
 
         const diffSec = (now - tradeTime) / 1000;
-       
         if (diffSec > 15) {
             return false;
         }
@@ -1379,7 +1380,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.7");
+    logToPanel("UI创建完成 版本V1.0.8");
 
 }
 
