@@ -1073,7 +1073,9 @@ async function CreateUI() {
 
     window.MY_MarTradeLossNumber = localStorage.getItem('MaxTradeFaileInput' + MYcoinName) || 3;
     window.MY_TradWaitTime = localStorage.getItem('TradWaitTime' + MYcoinName) || 5;
-    window.MY_AutoRefreshWeb = localStorage.getItem('AutoRefreshWeb' + MYcoinName) || false;
+    
+    let val = localStorage.getItem('AutoRefreshWeb' + MYcoinName);
+    window.MY_AutoRefreshWeb = val ? JSON.parse(val) : false;
 
 
 
@@ -1378,7 +1380,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.7");
+    logToPanel("UI创建完成 版本V1.0.6");
 
 }
 
