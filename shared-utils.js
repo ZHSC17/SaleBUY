@@ -233,7 +233,7 @@ function StableCoinPriceGet(direction = 'BUY') {
         }
         let buyPrices = buys.map(d => d.price);
         buyPrices = removeOutliers(buyPrices, 2);  // 去掉离群点
-        const vwap = getVWAP(sellPrices , sellPrices.length);
+        const vwap = getVWAP(buyPrices , buyPrices.length);
 
         // 卖出：参考 VWAP 并稍微往上抬
         return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
