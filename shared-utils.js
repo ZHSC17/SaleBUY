@@ -1390,15 +1390,10 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
     {
         UpdateTradeHistoryData();
         if(!isLoadHistory && tradeHistory.length > 20){
-            isLoadHistory = true;
             btn.style.display = "block";
             saleCoin.style.display = "block";
             logToPanel("交易数据读取完成");
-            if(JSON.parse(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
-            {
-                startTradingCycle();
-                localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
-            }
+            ReloadAutoStart();
         }
         await new Promise(r => setTimeout(r, 1000));
 
@@ -1415,6 +1410,21 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
                 location.reload();
             }
         }
+    }
+}
+
+async function ReloadAutoStart()
+{ 
+    if(JSON.parse(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
+    {
+        localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
+        await new Promise(r => setTimeout(r, 10000));
+        startTradingCycle();
+        isLoadHistory = true;
+    }
+    else
+    {
+        isLoadHistory = true;
     }
 }
 
