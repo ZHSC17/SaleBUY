@@ -204,13 +204,15 @@ function isDowntrend(tradeHistory, count = 5) {
 // }
 
 
-//去掉数据噪点
-function removeOutliers(prices, k = 2) {
+function removeOutliers(data, k = 2) {
+    // 提取 price 数组
+    const prices = data.map(d => d.price);
+
     const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
     const variance = prices.reduce((a, b) => a + (b - mean) ** 2, 0) / prices.length;
     const std = Math.sqrt(variance);
 
-    return prices.filter(p => Math.abs(p - mean) <= k * std);
+    return data.filter(d => Math.abs(d.price - mean) <= k * std);
 }
 
 //稳定币交易策略
@@ -220,8 +222,7 @@ function StableCoinPriceGet(direction = 'BUY') {
         if(sells.length > 5){
             sells = sells.slice(-5);
         }
-        let sellPrices = sells.map(d => d.price);
-        sellPrices = removeOutliers(sellPrices, 2);
+        sellPrices = removeOutliers(sells, 2);
         const vwap = getVWAP(sellPrices , sellPrices.length);
 
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
@@ -231,8 +232,7 @@ function StableCoinPriceGet(direction = 'BUY') {
         if(buys.length > 5){
             buys = buys.slice(-5);
         }
-        let buyPrices = buys.map(d => d.price);
-        buyPrices = removeOutliers(buyPrices, 2);  // 去掉离群点
+        buyPrices = removeOutliers(buys, 2);  // 去掉离群点
         const vwap = getVWAP(buyPrices , buyPrices.length);
 
         // 卖出：参考 VWAP 并稍微往上抬
