@@ -31,7 +31,7 @@ function InitTradeNodes() {
     tradeNodes = Array.from(
         document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
     );
-    trade3Nodes = tradeNodes.slice(-3); 
+    trade3Nodes = tradeNodes.slice(0,3); 
 }
 
 function ParseTradeNode(div) {
@@ -104,7 +104,7 @@ function WebViewIsNormal()
         const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
 
         const diffSec = (now - tradeTime) / 1000;
-
+       
         if (diffSec > 7) {
             return false;
         }
@@ -1090,7 +1090,7 @@ async function CreateUI() {
     // 创建 toggle（checkbox）
     const AutoRefreshToggle = document.createElement('input');
     AutoRefreshToggle.type = 'checkbox';
-    AutoRefreshToggle.checked = localStorage.getItem('AutoRefreshWeb' + MYcoinName) === 'false'; // 从 localStorage 读取
+    AutoRefreshToggle.checked = JSON.parse(localStorage.getItem('AutoRefreshWeb' + MYcoinName)); // 从 localStorage 读取
     AutoRefreshToggle.style.marginLeft = '8px';
 
     // 添加事件监听器
@@ -1384,12 +1384,12 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
         UpdateTradeHistoryData();
-        if(!isLoadHistory && tradeHistory.length > 30){
+        if(!isLoadHistory && tradeHistory.length > 20){
             isLoadHistory = true;
             btn.style.display = "block";
             saleCoin.style.display = "block";
             logToPanel("交易数据读取完成");
-            if(Boolean(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
+            if(JSON.parse(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
             {
                 startTradingCycle();
             }
@@ -1397,13 +1397,14 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
         await new Promise(r => setTimeout(r, 1000));
 
         
-        if(!WebViewIsNormal)
+        if(isLoadHistory && !WebViewIsNormal())
         {
             StopTradingCycle();
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
-            if(Boolean(window.MY_AutoRefreshWeb))
+            if(JSON.parselean(window.MY_AutoRefreshWeb))
             {
                 localStorage.setItem('AutoStartBuySale'+ MYcoinName, true);
+                await new Promise(r => setTimeout(r, 1000));
                 location.reload();
             }
         }
