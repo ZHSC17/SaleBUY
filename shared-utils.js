@@ -1101,7 +1101,10 @@ async function CreateUI() {
         if(isEnabled)
             logToPanel("启用卡死自动刷新网页并自动开始交易")
         else
+        { 
             logToPanel("关闭卡死自动刷新网页并自动开始交易")
+            localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
+        }
     });
 
     // 插入 label + toggle 到容器
@@ -1375,7 +1378,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.6");
+    logToPanel("UI创建完成 版本V1.0.7");
 
 }
 
@@ -1392,6 +1395,7 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             if(JSON.parse(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
             {
                 startTradingCycle();
+                localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
             }
         }
         await new Promise(r => setTimeout(r, 1000));
