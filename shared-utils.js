@@ -105,7 +105,7 @@ function WebViewIsNormal()
 
         const diffSec = (now - tradeTime) / 1000;
        
-        if (diffSec > 7) {
+        if (diffSec > 15) {
             return false;
         }
         else{
