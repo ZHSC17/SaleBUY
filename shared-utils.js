@@ -25,6 +25,7 @@ var tradeTypeDropdown;
 let tradeNodes = [];
 let trade3Nodes = [];
 let isFirstFetch = true;
+let waitTimes = 10;
 
 let currentSaleBuyPrice = "0";
 
@@ -255,14 +256,18 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
         {
             const buyfloatPrice = parseFloat(currentSaleBuyPrice)
             const priceLimit = (parseFloat(nowBuyPrice) -buyfloatPrice) / buyfloatPrice
-            if(priceLimit < -0.005)
+            if(priceLimit < -0.004)
             {
                 currentSaleBuyPrice = nowBuyPrice;
+                waitTimes = 0;
                 logToPanel("跌幅超限制，禁止买入！")
                 return null;
             }
         }
         currentSaleBuyPrice = nowBuyPrice;
+        waitTimes ++;
+        if(waitTimes < 3)
+            return null
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
         return nowBuyPrice;
     } else {
