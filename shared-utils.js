@@ -257,6 +257,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
             const priceLimit = (parseFloat(nowBuyPrice) -buyfloatPrice) / buyfloatPrice
             if(priceLimit < -0.005)
             {
+                currentSaleBuyPrice = nowBuyPrice;
                 logToPanel("跌幅超限制，禁止买入！")
                 return null;
             }
