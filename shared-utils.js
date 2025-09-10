@@ -1405,7 +1405,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.10");
+    logToPanel("UI创建完成 版本V1.0.11");
 
 }
 
@@ -1429,7 +1429,7 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             {
                 StopTradingCycle();
                 await new Promise(r => setTimeout(r, 5000));
-                await CancelOrder():
+                await CancelOrder();
             }
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
             if(JSON.parse(window.MY_AutoRefreshWeb))
