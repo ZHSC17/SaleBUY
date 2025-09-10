@@ -1405,11 +1405,12 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.11");
+    logToPanel("UI创建完成 版本V1.0.12");
 
 }
 
 var isLoadHistory = false;
+var needCheckWeb = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
@@ -1418,12 +1419,13 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             btn.style.display = "block";
             saleCoin.style.display = "block";
             logToPanel("交易数据读取完成");
+            isLoadHistory = true;
             ReloadAutoStart();
         }
         await new Promise(r => setTimeout(r, 1000));
 
         
-        if(isLoadHistory && !WebViewIsNormal())
+        if(needCheckWeb && !WebViewIsNormal())
         {
             if(isCircle)
             {
@@ -1449,11 +1451,12 @@ async function ReloadAutoStart()
         localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
         await new Promise(r => setTimeout(r, 10000));
         startTradingCycle();
-        isLoadHistory = true;
+        needCheckWeb = true;
     }
     else
     {
-        isLoadHistory = true;
+        await new Promise(r => setTimeout(r, 10000));
+        needCheckWeb = true;
     }
 }
 
