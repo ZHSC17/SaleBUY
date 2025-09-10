@@ -277,7 +277,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
                 return (vwap * window.MY_BaseTradeSaleOffsetInputNumber * 0.99).toFixed(window.tradeDecimal);
             }
         }
-        return 
+        return sellPrice;
     }
 }
 
@@ -790,7 +790,7 @@ async function waitUntilFilled(keyword,index,price) {
                 }
                 else
                 {
-                    CancelOrder();
+                    await CancelOrder();
                     let result = {
                         state : null
                     }
@@ -805,7 +805,7 @@ async function waitUntilFilled(keyword,index,price) {
         await new Promise(r => setTimeout(r, pollInterval));
 
     }
-    CancelOrder();
+    await CancelOrder();
     let result = {
         state : null
     }
@@ -1405,7 +1405,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.9");
+    logToPanel("UI创建完成 版本V1.0.10");
 
 }
 
@@ -1426,7 +1426,11 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
         if(isLoadHistory && !WebViewIsNormal())
         {
             if(isCircle)
+            {
                 StopTradingCycle();
+                await new Promise(r => setTimeout(r, 5000));
+                await CancelOrder():
+            }
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
             if(JSON.parse(window.MY_AutoRefreshWeb))
             {
