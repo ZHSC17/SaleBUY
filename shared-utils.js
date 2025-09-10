@@ -26,6 +26,8 @@ let tradeNodes = [];
 let trade3Nodes = [];
 let isFirstFetch = true;
 
+let currentSaleBuyPrice = "0";
+
 function InitTradeNodes() {
     // 初始抓取全部 trade 节点（只执行一次）
     tradeNodes = Array.from(
@@ -245,14 +247,37 @@ function StableCoinPriceGet(direction = 'BUY') {
 
 //基础VWAP交易逻辑
 function BasePriceByWeightedVolume(direction = 'BUY') {
-    const vwap = getVWAP(tradeHistory , 10);
+    const vwap = getVWAP(tradeHistory , 8);
 
     if (direction === 'BUY') {
+        const nowBuyPrice = (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
+        if(currentSaleBuyPrice != "0")
+        {
+            const buyfloatPrice = parseFloat(currentSaleBuyPrice)
+            const priceLimit = (parseFloat(nowBuyPrice) -buyfloatPrice) / buyfloatPrice
+            if(priceLimit < -0.005)
+            {
+                logToPanel("跌幅超限制，禁止买入！")
+                return null;
+            }
+        }
+        currentSaleBuyPrice = nowBuyPrice;
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
-        return (vwap * window.MY_BaseTradebuyOffsetInputNumber).toFixed(window.tradeDecimal);
+        return nowBuyPrice;
     } else {
         // 卖出：参考 VWAP 并稍微往上抬
-        return (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
+        const sellPrice = (vwap * window.MY_BaseTradeSaleOffsetInputNumber).toFixed(window.tradeDecimal);
+        if(currentSaleBuyPrice != "0")
+        {
+            const buyfloatPrice = parseFloat(currentSaleBuyPrice)
+            const priceLimit = (parseFloat(sellPrice) -buyfloatPrice) / buyfloatPrice
+            if(priceLimit < -0.005)
+            {
+                logToPanel("跌幅超限制，快速卖出！")
+                return (vwap * window.MY_BaseTradeSaleOffsetInputNumber * 0.99).toFixed(window.tradeDecimal);
+            }
+        }
+        return 
     }
 }
 
@@ -1380,7 +1405,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.8");
+    logToPanel("UI创建完成 版本V1.0.9");
 
 }
 
