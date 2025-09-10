@@ -277,7 +277,7 @@ function BasePriceByWeightedVolume(direction = 'BUY') {
         {
             const buyfloatPrice = parseFloat(currentSaleBuyPrice)
             const priceLimit = (parseFloat(sellPrice) -buyfloatPrice) / buyfloatPrice
-            if(priceLimit < -0.005)
+            if(priceLimit < -0.004)
             {
                 logToPanel("跌幅超限制，快速卖出！")
                 return (vwap * window.MY_BaseTradeSaleOffsetInputNumber * 0.99).toFixed(window.tradeDecimal);
