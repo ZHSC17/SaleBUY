@@ -510,8 +510,7 @@ function roundTo2AndTrimZeros(num , count , needFixed = false) {
         return num;
     if(needFixed)
     {
-        const fixedNum = num.toFixed(count + 5)
-        str = String(fixedNum);
+        str = num.toFixed(count + 3)
     }
     return Number(str.slice(0, dotIndex + count + 1)); // 截取小数点后N位
 }
@@ -930,7 +929,7 @@ async function BuyCoin(i) {
         nowTradBuyNumber += parseFloat(result.cumQuote);
         nowTradBuyQuantity += parseFloat(result.executedQty);
     }
-    while((result.state == false || nowTradBuyNumber <= 1) && isCircle)    //只要买入在10U以上，部分成交，也直接卖出，不等待全部成交
+    while((result.state == false || nowTradBuyNumber <= 1) && isCircle)    //只要买入在1U以上，部分成交，也直接卖出，不等待全部成交
     {
         await new Promise(r => setTimeout(r, pollInterval));
         const executedQty = parseFloat(result.executedQty);
@@ -945,10 +944,6 @@ async function BuyCoin(i) {
         {   nowTradBuyNumber += parseFloat(result.cumQuote);
             nowTradBuyQuantity += parseFloat(result.executedQty);
         }
-    }
-    if(nowTradBuyQuantity < 0.1)
-    {
-        return null;
     }
     return {
         nowTradBuyNumber,
