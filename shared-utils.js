@@ -929,7 +929,7 @@ async function BuyCoin(i) {
         nowTradBuyNumber += parseFloat(result.cumQuote);
         nowTradBuyQuantity += parseFloat(result.executedQty);
     }
-    while((result.state == false || nowTradBuyNumber <= 1) && isCircle)    //只要买入在1U以上，部分成交，也直接卖出，不等待全部成交
+    while((result.state == null || nowTradBuyNumber <= 1) && isCircle)    //只要买入在1U以上，部分成交，也直接卖出，不等待全部成交
     {
         await new Promise(r => setTimeout(r, pollInterval));
         const executedQty = parseFloat(result.executedQty);
