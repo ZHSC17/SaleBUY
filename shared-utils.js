@@ -1406,7 +1406,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.13");
+    logToPanel("UI创建完成 版本V1.0.14");
 
 }
 
