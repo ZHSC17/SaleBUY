@@ -109,7 +109,7 @@ function WebViewIsNormal()
         const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
 
         const diffSec = (now - tradeTime) / 1000;
-        if (diffSec > 25) {
+        if (diffSec > 35) {
             return false;
         }
         else{
@@ -1415,7 +1415,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.16");
+    logToPanel("UI创建完成 版本V1.0.17");
 
 }
 
