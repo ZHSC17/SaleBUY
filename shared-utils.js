@@ -669,6 +669,10 @@ async function BuyOrderCreate(count)
 async function SellOrderCreate(count)
 {
     const sellPrice = await window.MY_getBestPriceByWeightedVolume("SELL");
+    if(parseFloat(sellPrice) * count < 0.11)   //价值低于0.1不能挂单， 因此直接返回已成交
+    {
+        return  null;
+    }
     await window.MY_placeOrder({
         baseAsset: window.baseAsset,
         quoteAsset,
@@ -968,6 +972,11 @@ async function SaleCoin(i , saleNumber) {
         const executedQty = parseFloat(result.executedQty);
         myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
         sellPrice = await window.MY_SellOrderCreate(myquantity);
+        if(sellPrice == null)
+        {
+            result.state = true;
+            continue;
+        }
         result = await waitUntilFilled("卖单" , i ,sellPrice)
         if(result.state != null)
         {
@@ -1406,7 +1415,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.14");
+    logToPanel("UI创建完成 版本V1.0.15");
 
 }
 
