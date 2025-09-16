@@ -27,6 +27,7 @@ let trade3Nodes = [];
 let isFirstFetch = true;
 let waitTimes = 10;
 let isAddWebSocket = false;
+let webSocketIsClose = false;
 
 let currentSaleBuyPrice = "0";
 
@@ -155,6 +156,9 @@ function listenWebSocketMessages(targetUrl, callback) {
                     console.log('[WS] 收到非 JSON 消息:', event.data);
                 }
             });
+            ws.addEventListener('close', (event) => {
+                 webSocketIsClose = true;
+            });
         }
 
         return ws;
@@ -192,6 +196,10 @@ function WebViewIsNormal()
 //         }
 //     }
 //     return false;
+    if(webSocketIsClose)
+    {
+        return false;
+    }
     if (tradeHistory.length > 0) {
         const latestTrade = tradeHistory[tradeHistory.length - 1];
 
@@ -199,7 +207,7 @@ function WebViewIsNormal()
         const now = new Date();
 
         const diffSec = (now - latestTrade.time) / 1000;
-        if (diffSec > 35) {
+        if (diffSec > 60) {
             return false;
         }
         else{
