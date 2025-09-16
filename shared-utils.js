@@ -47,7 +47,6 @@ function ParseTradeNode(div) {
     const price  = parseFloat(priceText.replace(/,/g, ''));
     const volume = parseFloat(volumeText.replace(/,/g, ''));
 
-            console.log(1)
     // 主动方（通过颜色判断）
     const colorStyle = div.children[1]?.getAttribute('style') || '';
     let side = '';
@@ -152,7 +151,7 @@ function listenWebSocketMessages(targetUrl, callback) {
                     // 转发给油猴
                     window.postMessage({ type: 'CUSTOM_WS_MSG', data }, '*');
                 } catch (e) {
-                    console.log('[WS] 收到非 JSON 消息:', event.data);
+                   // console.log('[WS] 收到非 JSON 消息:', event.data);
                 }
             });
             ws.addEventListener('close', (event) => {
