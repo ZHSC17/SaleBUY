@@ -1,4 +1,4 @@
-// shared-utils.js
+// okxsale.js
 
 /**
  * 获取 VWAP 中间价格
@@ -56,43 +56,75 @@ function ParseTradeNode(div) {
         : { time: timeText, price, volume, side };
 }
 
-function UpdateTradeHistoryData() {
-    if (isFirstFetch) {
-        InitTradeNodes();
-        if(tradeNodes.length == 0 )return;
-        const newData = tradeNodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
 
-        for (const trade of newData) {
-            const exists = tradeHistory.some(
-                t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
-            );
-            if (!exists) {
-                tradeHistory.push(trade);
-            }
+function listenWebSocketMessages(targetUrl, callback) {
+    // 注入页面上下文
+    const script = document.createElement('script');
+    script.textContent = `
+        (function() {
+            const OriginalWebSocket = window.WebSocket;
+            window.WebSocket = function(url, protocols) {
+                const ws = new OriginalWebSocket(url, protocols);
+
+                if (url.includes("${targetUrl}")) {
+                    console.log('[WS] 拦截连接:', url);
+
+                    ws.addEventListener('message', function(event) {
+                        try {
+                            const data = JSON.parse(event.data);
+                            // 转发给油猴
+                            window.postMessage({ type: 'CUSTOM_WS_MSG', data }, '*');
+                        } catch (e) {
+                            console.log('[WS] 收到非 JSON 消息:', event.data);
+                        }
+                    });
+                }
+
+                return ws;
+            };
+            window.WebSocket.prototype = OriginalWebSocket.prototype;
+        })();
+    `;
+    document.documentElement.appendChild(script);
+    script.remove();
+
+    // 油猴脚本接收消息
+    window.addEventListener('message', function(event) {
+        if (event.source !== window) return;
+        if (event.data && event.data.type === 'CUSTOM_WS_MSG') {
+            callback(event.data.data);
+        }
+    });
+}
+
+
+function UpdateTradeHistoryData(data) {
+
+    if(!data) return;
+    if(data.arg.channel != "dex-market-trade-history-pub") return;
+    for (int i =0 ;i<data.data.length ; i++) {
+        let amount = 0;
+        for (int j = 0; j < data.data[i].changedTokenInfo.length; j++) {
+            amount += parseFloat(data.data[i].changedTokenInfo[j].amount)
         }
 
-        if (tradeHistory.length > 50) {
-            tradeHistory = tradeHistory.slice(-50);
-        }
-        isFirstFetch = false; 
-        tradeNodes = null;
-    } 
-    else
-    {
-        const newData = trade3Nodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
-        for (const trade of newData) {
-            const exists = tradeHistory.some(
-                t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
-            );
-            if (!exists) {
-                tradeHistory.push(trade);
-            }
-        }
 
-        if (tradeHistory.length > 50) {
-            tradeHistory = tradeHistory.slice(-50);
-        }
+        tradeHistory.push({
+            time: data.data[i].timestamp,
+            price: data.data[i].price,
+            volume: amount,
+            side: data.data[i].isBuy ? 'BUY' : 'SELL'
+        });
+        logToPanel({
+            time: data.data[i].timestamp,
+            price: data.data[i].price,
+            volume: amount,
+            side: data.data[i].isBuy ? 'BUY' : 'SELL'
+        })
     }
+    if (tradeHistory.length > 50) {
+                tradeHistory = tradeHistory.slice(-50);
+            }
 
 }
 
@@ -103,12 +135,8 @@ function WebViewIsNormal()
 
         // 把 HH:mm:ss 拼接到今天日期
         const now = new Date();
-        const todayStr = now.getFullYear() + '-'
-               + String(now.getMonth() + 1).padStart(2, '0') + '-'
-               + String(now.getDate()).padStart(2, '0');
-        const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
 
-        const diffSec = (now - tradeTime) / 1000;
+        const diffSec = (now - latestTrade.time) / 1000;
         if (diffSec > 35) {
             return false;
         }
@@ -1414,6 +1442,8 @@ async function CreateUI() {
     document.body.appendChild(saleCoin);
 
     LoopUpdateHistoryData(btn,saleCoin);
+    
+    listenWebSocketMessages("wss://wsdexpri.okx.com/ws/v5/ipublic", UpdateTradeHistoryData)
   //  initTradeChart();
     logToPanel("UI创建完成 版本V1.0.17");
 
@@ -1424,7 +1454,6 @@ var needCheckWeb = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
-        UpdateTradeHistoryData();
         if(!isLoadHistory && tradeHistory.length > 20){
             btn.style.display = "block";
             saleCoin.style.display = "block";
@@ -1432,7 +1461,7 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             isLoadHistory = true;
             ReloadAutoStart();
         }
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 2000));
 
         
         if(needCheckWeb && !WebViewIsNormal())
