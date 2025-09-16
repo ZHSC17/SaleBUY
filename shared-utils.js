@@ -96,7 +96,6 @@ function UpdateTradeHistoryData(data) {
     if (tradeHistory.length > 50) {
         tradeHistory = tradeHistory.slice(-50);
     }
-    console.log(tradeHistory);
 //     if (isFirstFetch) {
 //         InitTradeNodes();
 //         if(tradeNodes.length == 0 )return;
