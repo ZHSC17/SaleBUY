@@ -26,6 +26,7 @@ let tradeNodes = [];
 let trade3Nodes = [];
 let isFirstFetch = true;
 let waitTimes = 10;
+let isAddWebSocket = false;
 
 let currentSaleBuyPrice = "0";
 
@@ -34,7 +35,7 @@ function InitTradeNodes() {
     tradeNodes = Array.from(
         document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
     );
-    trade3Nodes = tradeNodes.slice(0,3); 
+    trade3Nodes = tradeNodes.slice(0,3);
 }
 
 function ParseTradeNode(div) {
@@ -45,22 +46,32 @@ function ParseTradeNode(div) {
     const price  = parseFloat(priceText.replace(/,/g, ''));
     const volume = parseFloat(volumeText.replace(/,/g, ''));
 
+            console.log(1)
     // 主动方（通过颜色判断）
     const colorStyle = div.children[1]?.getAttribute('style') || '';
     let side = '';
     if (colorStyle.includes('Buy')) side = 'BUY';
     else if (colorStyle.includes('Sell')) side = 'SELL';
 
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-'
+    + String(now.getMonth() + 1).padStart(2, '0') + '-'
+    + String(now.getDate()).padStart(2, '0');
+    const tradeTime = new Date(`${todayStr}T${timeText}`);
+
     return (isNaN(price) || isNaN(volume) || !timeText)
         ? null
-        : { time: timeText, price, volume, side };
+        : { time: tradeTime.getTime(), price, volume, side };
 }
 
-function UpdateTradeHistoryData() {
+function UpdateTradeHistoryData(data) {
+
     if (isFirstFetch) {
-        InitTradeNodes();
-        if(tradeNodes.length == 0 )return;
-        const newData = tradeNodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
+        let mtradeNodes = Array.from(
+            document.querySelectorAll('.ReactVirtualized__Grid__innerScrollContainer > div[role="gridcell"]')
+        );
+        if(mtradeNodes.length == 0 )return;
+        const newData = mtradeNodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
 
         for (const trade of newData) {
             const exists = tradeHistory.some(
@@ -70,45 +81,124 @@ function UpdateTradeHistoryData() {
                 tradeHistory.push(trade);
             }
         }
-
-        if (tradeHistory.length > 50) {
-            tradeHistory = tradeHistory.slice(-50);
-        }
-        isFirstFetch = false; 
-        tradeNodes = null;
-    } 
-    else
-    {
-        const newData = trade3Nodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
-        for (const trade of newData) {
-            const exists = tradeHistory.some(
-                t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
-            );
-            if (!exists) {
-                tradeHistory.push(trade);
-            }
-        }
-
-        if (tradeHistory.length > 50) {
-            tradeHistory = tradeHistory.slice(-50);
-        }
+        isFirstFetch = false;
     }
+    if(!data) return;
+    if(!data.stream) return;
+    if(!data.stream.includes("@aggTrade")) return;
+    tradeHistory.push({
+        time: data.data.T,
+        price: parseFloat(data.data.p),
+        volume:  parseFloat(data.data.q),
+        side: data.data.m ? 'SELL': 'BUY'
+    });
+    if (tradeHistory.length > 50) {
+        tradeHistory = tradeHistory.slice(-50);
+    }
+    console.log(tradeHistory);
+//     if (isFirstFetch) {
+//         InitTradeNodes();
+//         if(tradeNodes.length == 0 )return;
+//         const newData = tradeNodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
+
+//         for (const trade of newData) {
+//             const exists = tradeHistory.some(
+//                 t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
+//             );
+//             if (!exists) {
+//                 tradeHistory.push(trade);
+//             }
+//         }
+
+//         if (tradeHistory.length > 50) {
+//             tradeHistory = tradeHistory.slice(-50);
+//         }
+//         isFirstFetch = false;
+//         tradeNodes = null;
+//     }
+//     else
+//     {
+//         const newData = trade3Nodes.slice().reverse().map(ParseTradeNode).filter(item => item !== null);
+//         for (const trade of newData) {
+//             const exists = tradeHistory.some(
+//                 t => t.time === trade.time && t.price === trade.price && t.volume === trade.volume && t.side === trade.side
+//             );
+//             if (!exists) {
+//                 tradeHistory.push(trade);
+//             }
+//         }
+
+//         if (tradeHistory.length > 50) {
+//             tradeHistory = tradeHistory.slice(-50);
+//         }
+//     }
 
 }
+
+
+function listenWebSocketMessages(targetUrl, callback) {
+    // 注入页面上下文
+    const script = document.createElement('script');
+    const OriginalWebSocket = window.WebSocket;
+    window.WebSocket = function(url, protocols) {
+        const ws = new OriginalWebSocket(url, protocols);
+
+        if (!isAddWebSocket && url.includes(targetUrl)) {
+            window.MY_logToPanel("连接上交易数据");
+            isAddWebSocket = true;
+            ws.addEventListener('message', function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    // 转发给油猴
+                    window.postMessage({ type: 'CUSTOM_WS_MSG', data }, '*');
+                } catch (e) {
+                    console.log('[WS] 收到非 JSON 消息:', event.data);
+                }
+            });
+        }
+
+        return ws;
+    };
+    window.WebSocket.prototype = OriginalWebSocket.prototype;
+
+    // 油猴脚本接收消息
+    window.addEventListener('message', function(event) {
+        if (event.source !== window) return;
+        if (event.data && event.data.type === 'CUSTOM_WS_MSG') {
+            callback(event.data.data);
+        }
+    });
+}
+
 
 function WebViewIsNormal()
 {
-     if (tradeHistory.length > 0) {
+//       if (tradeHistory.length > 0) {
+//         const latestTrade = tradeHistory[tradeHistory.length - 1];
+
+//         // 把 HH:mm:ss 拼接到今天日期
+//         const now = new Date();
+//         const todayStr = now.getFullYear() + '-'
+//                + String(now.getMonth() + 1).padStart(2, '0') + '-'
+//                + String(now.getDate()).padStart(2, '0');
+//         const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
+
+//         const diffSec = (now - tradeTime) / 1000;
+//         if (diffSec > 35) {
+//             return false;
+//         }
+//         else{
+//             return true;
+//         }
+//     }
+//     return false;
+    if (tradeHistory.length > 0) {
         const latestTrade = tradeHistory[tradeHistory.length - 1];
 
         // 把 HH:mm:ss 拼接到今天日期
         const now = new Date();
-        const todayStr = now.getFullYear() + '-'
-               + String(now.getMonth() + 1).padStart(2, '0') + '-'
-               + String(now.getDate()).padStart(2, '0');
-        const tradeTime = new Date(`${todayStr}T${latestTrade.time}`);
 
-        const diffSec = (now - tradeTime) / 1000;
+        const diffSec = (now - latestTrade.time) / 1000;
         if (diffSec > 35) {
             return false;
         }
@@ -1415,7 +1505,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.17");
+    logToPanel("UI创建完成 版本V1.0.18");
 
 }
 
@@ -1424,7 +1514,6 @@ var needCheckWeb = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
     while(true)
     {
-        UpdateTradeHistoryData();
         if(!isLoadHistory && tradeHistory.length > 20){
             btn.style.display = "block";
             saleCoin.style.display = "block";
@@ -1432,9 +1521,8 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             isLoadHistory = true;
             ReloadAutoStart();
         }
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 5000));
 
-        
         if(needCheckWeb && !WebViewIsNormal())
         {
             if(isCircle)
@@ -1558,3 +1646,5 @@ window.MY_CancelOrder = CancelOrder;
 window.MY_BuyOrderCreate = BuyOrderCreate;
 window.MY_SellOrderCreate = SellOrderCreate;
 window.MY_CreateUI = CreateUI;
+window.MY_listenWebSocketMessages = listenWebSocketMessages;
+window.MY_UpdateTradeHistoryData = UpdateTradeHistoryData;
