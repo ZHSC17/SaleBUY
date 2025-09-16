@@ -1445,7 +1445,7 @@ async function CreateUI() {
     
     listenWebSocketMessages("wss://wsdexpri.okx.com/ws/v5/ipublic", UpdateTradeHistoryData)
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.17");
+    logToPanel("UI创建完成 版本V1.0.1");
 
 }
 
