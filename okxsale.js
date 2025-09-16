@@ -102,9 +102,9 @@ function UpdateTradeHistoryData(data) {
 
     if(!data) return;
     if(data.arg.channel != "dex-market-trade-history-pub") return;
-    for (int i =0 ;i<data.data.length ; i++) {
+    for (let i =0 ;i<data.data.length ; i++) {
         let amount = 0;
-        for (int j = 0; j < data.data[i].changedTokenInfo.length; j++) {
+        for (let j = 0; j < data.data[i].changedTokenInfo.length; j++) {
             amount += parseFloat(data.data[i].changedTokenInfo[j].amount)
         }
 
