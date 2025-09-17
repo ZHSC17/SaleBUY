@@ -1535,6 +1535,9 @@ async function CreateUI() {
 var isLoadHistory = false;
 var needCheckWeb = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
+    setTimeout(() => {
+                    needCheckWeb = true;
+                }, 30000);
     while(true)
     {
         if(!isLoadHistory && tradeHistory.length > 20){
