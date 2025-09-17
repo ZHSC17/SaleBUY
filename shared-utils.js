@@ -1520,7 +1520,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.18");
+    logToPanel("UI创建完成 版本V1.0.19");
 
 }
 
@@ -1551,7 +1551,10 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             {
                 localStorage.setItem('AutoStartBuySale'+ MYcoinName, true);
                 await new Promise(r => setTimeout(r, 1000));
-                location.reload();
+                const currentUrl = window.location.href;
+                window.open(currentUrl, "_blank");
+                await new Promise(r => setTimeout(r, 1000));
+                window.close();
             }
         }
     }
