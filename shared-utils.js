@@ -1521,7 +1521,6 @@ async function CreateUI() {
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
     logToPanel("UI创建完成 版本V1.0.19");
-
 }
 
 var isLoadHistory = false;
@@ -1549,15 +1548,10 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
             window.MY_logToPanel(`交易历史数据错误！请检查网页是否卡死！`);
             if(JSON.parse(window.MY_AutoRefreshWeb))
             {
+                window.MY_logToPanel(`重新打开网页`);
                 localStorage.setItem('AutoStartBuySale'+ MYcoinName, true);
                 await new Promise(r => setTimeout(r, 1000));
-                const currentUrl = window.location.href;
-                window.open(currentUrl, "_blank");
-                await new Promise(r => setTimeout(r, 1000));
-                if(!window.close())
-                {
-                    window.location.href = "about:blank";
-                }
+                location.href = location.href;
             }
         }
     }
