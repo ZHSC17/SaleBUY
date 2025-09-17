@@ -957,7 +957,7 @@ async function startTradingCycle(times = 10) {
         {
             break;
         }
-        if(tradeHistory.length < 30 && isCircle)
+        if(tradeHistory.length < 20 && isCircle)
         {
             window.MY_logToPanel(`等待统计历史交易记录`);
             await new Promise(r => setTimeout(r, 10000));
