@@ -1554,7 +1554,10 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
                 const currentUrl = window.location.href;
                 window.open(currentUrl, "_blank");
                 await new Promise(r => setTimeout(r, 1000));
-                window.close();
+                if(!window.close())
+                {
+                    window.location.href = "about:blank";
+                }
             }
         }
     }
