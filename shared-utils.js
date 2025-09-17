@@ -1529,7 +1529,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.1.0");
+    logToPanel("UI创建完成 版本V1.1.1");
 }
 
 var isLoadHistory = false;
