@@ -28,7 +28,6 @@ let isFirstFetch = true;
 let waitTimes = 10;
 let isAddWebSocket = false;
 let webSocketIsClose = false;
-let uiIsCreate = false;
 
 let currentSaleBuyPrice = "0";
 
@@ -156,7 +155,7 @@ function listenWebSocketMessages(targetUrl, callback) {
                 }
             });
             ws.addEventListener('close', (event) => {
-                 webSocketIsClose = true;
+                isAddWebSocket = false;
             });
         }
 
