@@ -28,6 +28,7 @@ let isFirstFetch = true;
 let waitTimes = 10;
 let isAddWebSocket = false;
 let webSocketIsClose = false;
+let uiIsCreate = false;
 
 let currentSaleBuyPrice = "0";
 
