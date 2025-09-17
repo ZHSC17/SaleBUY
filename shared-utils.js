@@ -880,6 +880,15 @@ async function waitUntilFilled(keyword,index,price) {
                     return result;
                 }
             }
+            if(orderState != null && orderState.status == "CANCELED")
+            {
+                let result = {
+                    state : false,
+                    executedQty :orderState.executedQty,
+                    cumQuote :orderState.cumQuote
+                }
+                return result
+            }
             if(Date.now() - start > window.MY_TradWaitTime * 1000)
             {
                 const cancelResult = await window.MY_CancelOrder();
@@ -1520,7 +1529,7 @@ async function CreateUI() {
 
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.0.19");
+    logToPanel("UI创建完成 版本V1.1.0");
 }
 
 var isLoadHistory = false;
