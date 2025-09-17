@@ -28,6 +28,7 @@ let isFirstFetch = true;
 let waitTimes = 10;
 let isAddWebSocket = false;
 let webSocketIsClose = false;
+let webSocketTimeOutTime = null;
 
 let currentSaleBuyPrice = "0";
 
@@ -144,6 +145,8 @@ function listenWebSocketMessages(targetUrl, callback) {
 
         if (!isAddWebSocket && url.includes(targetUrl)) {
             window.MY_logToPanel("连接上交易数据");
+            if(webSocketTimeOutTime)
+                clearTimeout(webSocketTimeOutTime);
             isAddWebSocket = true;
             ws.addEventListener('message', function(event) {
                 try {
@@ -156,6 +159,11 @@ function listenWebSocketMessages(targetUrl, callback) {
             });
             ws.addEventListener('close', (event) => {
                 isAddWebSocket = false;
+                webSocketTimeOutTime = setTimeout(() => {
+                    webSocketIsClose = true;
+                    window.MY_logToPanel("WebSocket数据断开超时");
+                }, 10000);
+                
             });
         }
 
@@ -171,6 +179,7 @@ function listenWebSocketMessages(targetUrl, callback) {
         }
     });
 }
+
 
 
 function WebViewIsNormal()
