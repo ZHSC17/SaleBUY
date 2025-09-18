@@ -163,7 +163,7 @@ function listenWebSocketMessages(targetUrl, callback) {
                     webSocketIsClose = true;
                     window.MY_logToPanel("WebSocket数据断开超时");
                 }, 10000);
-                
+
             });
         }
 
@@ -777,7 +777,7 @@ async function CancelOrder(morderid = null) {
         morderid = orderid
     try {
         const payLoad = {
-            morderid,
+            orderid:morderid,
             symbol:window.symbol
         };
         // 给 fetch 加超时
@@ -1315,7 +1315,7 @@ async function CreateUI() {
         if(isEnabled)
             logToPanel("启用卡死自动刷新网页并自动开始交易")
         else
-        { 
+        {
             logToPanel("关闭卡死自动刷新网页并自动开始交易")
             localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
         }
@@ -1590,11 +1590,11 @@ async function CreateUI() {
     document.body.appendChild(clearbtn);
     document.body.appendChild(saleCoin);
 
-    let openOrder =  await GetOpenOrder();  
+    let openOrder =  await GetOpenOrder();
     let openCount = await CancelOpenOrder(openOrder)
     while(openCount != 0)
     {
-        openOrder =  await GetOpenOrder();  
+        openOrder =  await GetOpenOrder();
         openCount = await CancelOpenOrder(openOrder)
     }
     LoopUpdateHistoryData(btn,saleCoin);
@@ -1640,7 +1640,7 @@ async function LoopUpdateHistoryData(btn,saleCoin) {
 }
 
 async function ReloadAutoStart()
-{ 
+{
     if(JSON.parse(localStorage.getItem('AutoStartBuySale'+ MYcoinName)))
     {
         localStorage.setItem('AutoStartBuySale'+ MYcoinName, false);
