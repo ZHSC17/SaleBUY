@@ -1059,8 +1059,13 @@ async function startTradingCycle(times = 10) {
             window.MY_logToPanel(`停止自动交易`);
             break;
         }
+        let feeNumber = 0.9999;
+        if(window.chainName == "Solana")
+        {
+            feeNumber = 0.9985;
+        }
 
-        sellquantity = roundTo2AndTrimZeros(result.nowTradBuyQuantity * 0.9999 , 2);
+        sellquantity = roundTo2AndTrimZeros(result.nowTradBuyQuantity * feeNumber , 2);
         const nowTradSaleNumber = await SaleCoin(i , sellquantity)
         if(nowTradSaleNumber == null&& isCircle)
         {
