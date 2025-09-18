@@ -757,12 +757,28 @@ async function placeOrder(payload) {
                 {
                     window.playBase64();
                 }
+                let orderList = await GetOpenOrder();  let count = 0 ;
+                for(let i =0 ;i<orderList.length;i++)
+                {
+                    if(orderList[i].symbol == window.symbol)
+                    {
+                        return true;
+                    }
+                }
                 window.MY_logToPanel("❌ 下单失败: " + json.message + JSON.stringify(payload));
             }
         } catch (err) {
             if(count >= 3)
             {
                 window.playBase64();
+            }
+            let orderList = await GetOpenOrder();
+            for(let i =0 ;i<orderList.length;i++)
+            {
+                if(orderList[i].symbol == window.symbol)
+                {
+                    return true;
+                }
             }
             window.MY_logToPanel("⚠️ placeOrder请求异常: " + err.message);
         }
@@ -1604,7 +1620,7 @@ async function CreateUI() {
     }
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.1.2");
+    logToPanel("UI创建完成 版本V1.1.3");
 }
 
 var isLoadHistory = false;
