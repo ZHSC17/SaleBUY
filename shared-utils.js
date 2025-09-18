@@ -777,7 +777,7 @@ async function CancelOrder(morderid = null) {
         morderid = orderid
     try {
         const payLoad = {
-            orderid,
+            morderid,
             symbol:window.symbol
         };
         // 给 fetch 加超时
@@ -793,7 +793,7 @@ async function CancelOrder(morderid = null) {
         const json = await res.json();
 
         if (json.success) {
-            window.MY_logToPanel('[📨 订单长时间未成交，已取消]'+orderid + json);
+            window.MY_logToPanel('[📨 订单长时间未成交，已取消]'+morderid + json);
             return true;
         }
         else
