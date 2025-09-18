@@ -663,6 +663,67 @@ function logToPanel(message) {
         logPanel.scrollTop = logPanel.scrollHeight; // 自动滚动到底部
 }
 
+// 获取委托订单
+async function GetOpenOrder() {
+    let count = 0;
+    while(true)
+    {
+        try {
+            // 给 fetch 加超时
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 5 秒超时
+
+            const res = await fetch(
+                'https://www.binance.com/bapi/defi/v1/private/alpha-trade/order/get-open-order?side=',
+                {
+                    method: 'GET',
+                    headers: window.capturedHeaders,
+                    credentials: 'include',
+                    signal: controller.signal
+                }
+            );
+            clearTimeout(timeoutId);
+
+            const json = await res.json();
+
+            if (json.success) {
+                orderList = json.data;
+                window.MY_logToPanel('[📨 获取委托订单成功] ' + orderList.length);
+                return orderList;
+            } else {
+                if(count >= 3)
+                {
+                    window.playBase64();
+                }
+                window.MY_logToPanel("❌ 获取委托订单失败！: " + json.message + JSON.stringify(payload));
+            }
+        } catch (err) {
+            if(count >= 3)
+            {
+                window.playBase64();
+            }
+            window.MY_logToPanel("⚠️ 获取委托订单请求异常: " + err.message);
+        }
+        count++;
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+}
+
+// 获取委托订单
+async function CancelOpenOrder(orderList) {
+    let count = 0 ;
+    for(let i =0 ;i<orderList.length;i++)
+    {
+        if(orderList[i].symbol == window.symbol)
+        {
+            await CancelOrder(orderList[i].orderId);
+            count ++;
+        }
+    }
+    return  count;
+}
+
 // 发送订单请求
 async function placeOrder(payload) {
     let count = 0;
@@ -711,7 +772,9 @@ async function placeOrder(payload) {
 
 }
 
-async function CancelOrder() {
+async function CancelOrder(morderid = null) {
+    if(morderid == null)
+        morderid = orderid
     try {
         const payLoad = {
             orderid,
@@ -815,7 +878,7 @@ async function GetOrderHistory(orderid) {
     {
         try {
             const endTime = Date.now();
-            const startTime = endTime - 60 * 60 * 1000; // 前一小时
+            const startTime = endTime - 20 * 60 * 1000; // 前20分钟
             const url = `https://www.binance.com/bapi/defi/v1/private/alpha-trade/order/get-order-history-web?page=1&rows=10&orderStatus=FILLED,PARTIALLY_FILLED,EXPIRED,CANCELED,REJECTED&startTime=${startTime}&endTime=${endTime}`;
 
             // 给 fetch 加超时
@@ -1527,9 +1590,16 @@ async function CreateUI() {
     document.body.appendChild(clearbtn);
     document.body.appendChild(saleCoin);
 
+    let openOrder =  await GetOpenOrder();  
+    let openCount = await CancelOpenOrder(openOrder)
+    while(openCount != 0)
+    {
+        openOrder =  await GetOpenOrder();  
+        openCount = await CancelOpenOrder(openOrder)
+    }
     LoopUpdateHistoryData(btn,saleCoin);
   //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.1.1");
+    logToPanel("UI创建完成 版本V1.1.2");
 }
 
 var isLoadHistory = false;
@@ -1537,7 +1607,7 @@ var needCheckWeb = false;
 async function LoopUpdateHistoryData(btn,saleCoin) {
     setTimeout(() => {
                     needCheckWeb = true;
-                }, 30000);
+                }, 60000);
     while(true)
     {
         if(!isLoadHistory && tradeHistory.length > 20){
