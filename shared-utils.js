@@ -687,7 +687,7 @@ async function GetOpenOrder() {
             const json = await res.json();
 
             if (json.success) {
-                orderList = json.data;
+                let orderList = json.data;
                 window.MY_logToPanel('[📨 获取委托订单成功] ' + orderList.length);
                 return orderList;
             } else {
@@ -757,7 +757,7 @@ async function placeOrder(payload) {
                 {
                     window.playBase64();
                 }
-                let orderList = await GetOpenOrder();  let count = 0 ;
+                let orderList = await GetOpenOrder();
                 for(let i =0 ;i<orderList.length;i++)
                 {
                     if(orderList[i].symbol == window.symbol)
