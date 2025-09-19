@@ -32,6 +32,8 @@ let webSocketTimeOutTime = null;
 
 let currentSaleBuyPrice = "0";
 
+let ws = null;
+
 function InitTradeNodes() {
     // 初始抓取全部 trade 节点（只执行一次）
     tradeNodes = Array.from(
@@ -135,49 +137,89 @@ function UpdateTradeHistoryData(data) {
 
 }
 
+function connectBinanceWS() {
+    const url = "wss://nbstream.binance.com/w3w/wsa/stream";
+    const ws = new WebSocket(url);
+
+
+    // "came@allTokens@limit@ticker24",
+    // "alpha_347usdt@aggTrade"
+
+    ws.onopen = () => {
+        const msg = {
+            method: "SUBSCRIBE",
+            params: ["alpha_347usdt@aggTrade"],
+            id: Date.now()
+        };
+        ws.send(JSON.stringify(msg));
+        logToPanel("✅ WebSocket 已连接:", url)
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            UpdateTradeHistoryData(data)
+        } catch (e) {
+            logToPanel("⚠️ JSON解析失败:")
+        }
+    };
+
+    ws.onclose = () => {
+        logToPanel("❌ WebSocket 已关闭")
+        connectBinanceWS();
+    };
+
+    ws.onerror = (err) => {
+        logToPanel("⚠️ WebSocket 错误:", err)
+        if(ws.readyState === WebSocket.OPEN) {
+            ws.close();
+        }
+        connectBinanceWS();
+    };
+}
 
 function listenWebSocketMessages(targetUrl, callback) {
     // 注入页面上下文
-    const script = document.createElement('script');
-    const OriginalWebSocket = window.WebSocket;
-    window.WebSocket = function(url, protocols) {
-        const ws = new OriginalWebSocket(url, protocols);
+    // const script = document.createElement('script');
+    // const OriginalWebSocket = window.WebSocket;
+    // window.WebSocket = function(url, protocols) {
+    //     const ws = new OriginalWebSocket(url, protocols);
 
-        if (!isAddWebSocket && url.includes(targetUrl)) {
-            window.MY_logToPanel("连接上交易数据");
-            if(webSocketTimeOutTime)
-                clearTimeout(webSocketTimeOutTime);
-            isAddWebSocket = true;
-            ws.addEventListener('message', function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    // 转发给油猴
-                    window.postMessage({ type: 'CUSTOM_WS_MSG', data }, '*');
-                } catch (e) {
-                   // console.log('[WS] 收到非 JSON 消息:', event.data);
-                }
-            });
-            ws.addEventListener('close', (event) => {
-                isAddWebSocket = false;
-                webSocketTimeOutTime = setTimeout(() => {
-                    webSocketIsClose = true;
-                    window.MY_logToPanel("WebSocket数据断开超时");
-                }, 10000);
+    //     if (!isAddWebSocket && url.includes(targetUrl)) {
+    //         window.MY_logToPanel("连接上交易数据");
+    //         if(webSocketTimeOutTime)
+    //             clearTimeout(webSocketTimeOutTime);
+    //         isAddWebSocket = true;
+    //         ws.addEventListener('message', function(event) {
+    //             try {
+    //                 const data = JSON.parse(event.data);
+    //                 // 转发给油猴
+    //                 window.postMessage({ type: 'CUSTOM_WS_MSG', data }, '*');
+    //             } catch (e) {
+    //                // console.log('[WS] 收到非 JSON 消息:', event.data);
+    //             }
+    //         });
+    //         ws.addEventListener('close', (event) => {
+    //             isAddWebSocket = false;
+    //             webSocketTimeOutTime = setTimeout(() => {
+    //                 webSocketIsClose = true;
+    //                 window.MY_logToPanel("WebSocket数据断开超时");
+    //             }, 10000);
 
-            });
-        }
+    //         });
+    //     }
 
-        return ws;
-    };
-    window.WebSocket.prototype = OriginalWebSocket.prototype;
+    //     return ws;
+    //};
+    // window.WebSocket.prototype = OriginalWebSocket.prototype;
 
-    // 油猴脚本接收消息
-    window.addEventListener('message', function(event) {
-        if (event.source !== window) return;
-        if (event.data && event.data.type === 'CUSTOM_WS_MSG') {
-            callback(event.data.data);
-        }
-    });
+    // // 油猴脚本接收消息
+    // window.addEventListener('message', function(event) {
+    //     if (event.source !== window) return;
+    //     if (event.data && event.data.type === 'CUSTOM_WS_MSG') {
+    //         callback(event.data.data);
+    //     }
+    // });
 }
 
 
@@ -214,7 +256,7 @@ function WebViewIsNormal()
         const now = new Date();
 
         const diffSec = (now - latestTrade.time) / 1000;
-        if (diffSec > 60) {
+        if (diffSec > 300) {
             return false;
         }
         else{
@@ -331,7 +373,7 @@ function StableCoinPriceGet(direction = 'BUY') {
         if(sells.length > 5){
             sells = sells.slice(-5);
         }
-        sellPrices = removeOutliers(sells, 2);
+        let sellPrices = removeOutliers(sells, 2);
         const vwap = getVWAP(sellPrices , sellPrices.length);
 
         // 买入：参考 VWAP 并稍微往下压，避免吃到高价
@@ -341,7 +383,7 @@ function StableCoinPriceGet(direction = 'BUY') {
         if(buys.length > 5){
             buys = buys.slice(-5);
         }
-        buyPrices = removeOutliers(buys, 2);  // 去掉离群点
+        let buyPrices = removeOutliers(buys, 2);  // 去掉离群点
         const vwap = getVWAP(buyPrices , buyPrices.length);
 
         // 卖出：参考 VWAP 并稍微往上抬
@@ -1606,12 +1648,15 @@ async function CreateUI() {
 
     saleCoin.style.display = "none";
 
+
     document.body.appendChild(btn);
     document.body.appendChild(cancelbtn);
     document.body.appendChild(clearbtn);
     document.body.appendChild(saleCoin);
 
-    let openOrder =  await GetOpenOrder();
+    connectBinanceWS();
+
+    let openOrder = await GetOpenOrder();
     let openCount = await CancelOpenOrder(openOrder)
     while(openCount != 0)
     {
@@ -1619,8 +1664,8 @@ async function CreateUI() {
         openCount = await CancelOpenOrder(openOrder)
     }
     LoopUpdateHistoryData(btn,saleCoin);
-  //  initTradeChart();
-    logToPanel("UI创建完成 版本V1.1.3");
+  //initTradeChart();
+    logToPanel("UI创建完成 版本V1.1.4");
 }
 
 var isLoadHistory = false;
