@@ -148,7 +148,7 @@ function connectBinanceWS() {
     ws.onopen = () => {
         const msg = {
             method: "SUBSCRIBE",
-            params: ["alpha_347usdt@aggTrade"],
+            params: [window.symbol.toLowerCase() + "@aggTrade"],
             id: Date.now()
         };
         ws.send(JSON.stringify(msg));
@@ -1665,7 +1665,7 @@ async function CreateUI() {
     }
     LoopUpdateHistoryData(btn,saleCoin);
   //initTradeChart();
-    logToPanel("UI创建完成 版本V1.1.4");
+    logToPanel("UI创建完成 版本V1.1.5");
 }
 
 var isLoadHistory = false;
