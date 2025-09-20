@@ -1228,7 +1228,7 @@ async function SaleCoin(i , saleNumber) {
 
 async function SaleCoinFromWallet(showTip = true) {
     let nowTradSaleNumber = 0;
-    const coinData = await GetAlphaRemaining();
+    let coinData = await GetAlphaRemaining();
     if(coinData == null)
     {
         if(showTip)
@@ -1237,7 +1237,7 @@ async function SaleCoinFromWallet(showTip = true) {
             logToPanel("账户alpha信息获取失败:" + coinData);
         return 0;
     }
-    const saleNumber = roundTo2AndTrimZeros(coinData.amount , 2);
+    let saleNumber = roundTo2AndTrimZeros(coinData.amount , 2);
     if(coinData.valuation < 0.2)
     {
         if(showTip)
@@ -1256,9 +1256,15 @@ async function SaleCoinFromWallet(showTip = true) {
     while(result.state == false)
     {
         await new Promise(r => setTimeout(r, pollInterval));
-        const executedQty = parseFloat(result.executedQty);
-        myquantity = window.MY_roundTo6AndTrimZeros(myquantity - executedQty);
-        sellPrice = await window.MY_SellOrderCreate(myquantity);
+        coinData = await GetAlphaRemaining();
+        if(coinData.valuation < 0.2)
+        {
+            logToPanel("已卖出:" + nowTradSaleNumber);
+            isCircle = false;
+            return;
+        }
+        saleNumber = roundTo2AndTrimZeros(coinData.amount , 2);
+        sellPrice = await window.MY_SellOrderCreate(saleNumber);
         if(sellPrice == null)
         {
             return null;
@@ -1278,7 +1284,7 @@ async function SaleCoinFromWallet(showTip = true) {
 
 async function GetAlphaRemaining() {
     let count = 0;
-    while(true && isCircle)
+    while(isCircle)
     {
         try {
             const url = `https://www.binance.com/bapi/defi/v1/private/wallet-direct/cloud-wallet/alpha`;
